@@ -1,0 +1,15 @@
+{
+  // Ignore unknown at-rules (Tailwind uses @tailwind, @layer, etc.)
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+
+  // Improve Tailwind support (requires the recommended extension below)
+  "tailwindCSS.includeLanguages": {
+    "javascript": "javascript",
+    "javascriptreact": "javascript",
+    "typescript": "javascript",
+    "typescriptreact": "javascript",
+    "html": "html"
+  }
+}
