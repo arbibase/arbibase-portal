@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import clsx from 'clsx';
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
