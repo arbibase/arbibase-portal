@@ -3,20 +3,30 @@ import { NextResponse } from "next/server";
 const allowedOrigins = [
   "https://arbibase.com",
   "https://www.arbibase.com",
-  "https://papayawhip-cod-416996.hostingersite.com,https://arbibase.ai,https://arbibase-portal.vercel.app",
-].map(s => s.trim());
+  "https://papayawhip-cod-416996.hostingersite.com", // your current WP/Hostinger site
+  "https://www.papayawhip-cod-416996.hostingersite.com",
+  "https://arbibase-portal.vercel.app",               // optional, for testing
+  "https://arbibase-portal.vercel.app"                // add any custom prod domain here too
+];
 
-function corsHeaders(req: Request) {
-  const origin = req.headers.get("origin") || "";
-  const allow = allowedOrigins.includes(origin) ? origin : allowedOrigins[0] || "*";
+function corsHeaders(origin: string | null) {
+  const allowOrigin =
+    origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
   return {
-    "Access-Control-Allow-Origin": allow,
-    "Vary": "Origin",
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  } as Record<string, string>;
+    "Access-Control-Max-Age": "86400",
+  };
 }
-/* -------------------------- */
+
+export async function OPTIONS(req: Request) {
+  const origin = req.headers.get("origin");
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders(origin),
+  });
+}
 
 function urlByRole(role?: string) {
   const r = (role || "").toLowerCase();
@@ -31,12 +41,16 @@ function sanitizeString(v: unknown) {
 }
 
 export async function POST(req: Request) {
+  const origin = req.headers.get("origin");
   try {
     const body = await req.json().catch(() => ({} as any));
 
     // honeypot
     if (body.website && String(body.website).trim().length > 0) {
-      return NextResponse.json({ ok: true, spam: true }, { headers: corsHeaders(req) });
+      return NextResponse.json(
+        { ok: true, spam: true },
+        { headers: corsHeaders(origin) }
+      );
     }
 
     const role = sanitizeString(body.role);
@@ -44,7 +58,7 @@ export async function POST(req: Request) {
     if (!target) {
       return NextResponse.json(
         { ok: false, error: `Missing or invalid role: "${role}"` },
-        { status: 400, headers: corsHeaders(req) }
+        { status: 400, headers: corsHeaders(origin) }
       );
     }
 
@@ -96,15 +110,15 @@ export async function POST(req: Request) {
       const text = await gh.text().catch(() => "");
       return NextResponse.json(
         { ok: false, error: `GHL webhook ${gh.status}: ${text || gh.statusText}` },
-        { status: 502, headers: corsHeaders(req) }
+        { status: 502, headers: corsHeaders(origin) }
       );
     }
 
-    return NextResponse.json({ ok: true }, { headers: corsHeaders(req) });
+    return NextResponse.json({ ok: true }, { headers: corsHeaders(origin) });
   } catch (err: any) {
     return NextResponse.json(
       { ok: false, error: err?.message || "Unhandled server error" },
-      { status: 500, headers: corsHeaders(req) }
+      { status: 500, headers: corsHeaders(origin) }
     );
   }
-}
+}  
