@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+// simple GET so we can verify the route exists
+export async function GET() {
+  return NextResponse.json({ ok: true, route: "/api/ghl" });
+}
+
 const allowedOrigins = [
   "https://arbibase.com",
   "https://www.arbibase.com",
