@@ -1,109 +1,127 @@
 import { NextResponse } from "next/server";
 
-// simple GET so we can verify the route exists
-export async function GET() {
-  return NextResponse.json({ ok: true, route: "/api/ghl" });
-}
+// main GET is defined later to support CORS and request handling
 
 const allowedOrigins = [
   "https://arbibase.com",
   "https://www.arbibase.com",
   "https://papayawhip-cod-416996.hostingersite.com", // your current WP/Hostinger site
   "https://www.papayawhip-cod-416996.hostingersite.com",
-  "https://arbibase-portal.vercel.app",               // optional, for testing
-  "https://arbibase-portal.vercel.app"                // add any custom prod domain here too
+  "https://arbibase-portal.vercel.app",
+  "http://localhost:3000"               // optional, for testing
 ];
 
-function corsHeaders(origin: string | null) {
-  const allowOrigin =
-    origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
-  };
-}
+const DEFAULT_ALLOWED = [
+  "https://arbibase.com",
+  "https://www.arbibase.com",
+  // add your Hostinger preview domain(s) if you use them during testing:
+  "https://*.hostingersite.com",
+  "http://localhost:3000",
+];
 
+function cors(res: NextResponse, origin: string | null) {
+  const allowList = (Array.isArray(allowedOrigins) && allowedOrigins.length) ? allowedOrigins : DEFAULT_ALLOWED;
+  const allow = (origin && allowList.includes(origin)) ? origin : allowList[0];
+  res.headers.set("Access-Control-Allow-Origin", allow);
+  res.headers.set("Access-Control-Allow-Methods", "POST,OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  res.headers.set("Access-Control-Max-Age", "86400");
+  res.headers.set("Vary", "Origin");
+  return res;
+}
 export async function OPTIONS(req: Request) {
-  const origin = req.headers.get("origin");
-  return new NextResponse(null, {
-    status: 204,
-    headers: corsHeaders(origin),
-  });
+  return cors(new NextResponse(null, { status: 204 }), req.headers.get("origin"));
 }
 
-function urlByRole(role?: string) {
-  const r = (role || "").toLowerCase();
+function norm(v: unknown) { return typeof v === "string" ? v.trim() : ""; }
+function roleToWebhook(role?: string) {
+  const r = norm(role).toLowerCase();
   if (r === "owner")    return process.env.GHL_WEBHOOK_OWNER;
   if (r === "operator") return process.env.GHL_WEBHOOK_OPERATOR;
   if (r === "coach")    return process.env.GHL_WEBHOOK_COACH;
-  return undefined;
+  return "";
 }
-
-function sanitizeString(v: unknown) {
-  return typeof v === "string" ? v.trim() : "";
+function roleToContactType(role?: string) {
+  const r = norm(role).toLowerCase();
+  if (r === "owner")    return "Landlord";
+  if (r === "operator") return "Operator";
+  if (r === "coach")    return "Coach";
+  return "";
 }
 
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
+
   try {
-    const body = await req.json().catch(() => ({} as any));
+    const b = (await req.json().catch(() => ({}))) as Record<string, any>;
 
     // honeypot
-    if (body.website && String(body.website).trim().length > 0) {
-      return NextResponse.json(
-        { ok: true, spam: true },
-        { headers: corsHeaders(origin) }
+    if (norm(b.website)) {
+      return cors(NextResponse.json({ ok: true, spam: true }), origin);
+    }
+
+    const hook = roleToWebhook(b.role);
+    if (!hook) {
+      return cors(
+        NextResponse.json({ ok: false, error: `Missing/invalid role.` }, { status: 400 }),
+        origin
       );
     }
 
-    const role = sanitizeString(body.role);
-    const target = urlByRole(role);
-    if (!target) {
-      return NextResponse.json(
-        { ok: false, error: `Missing or invalid role: "${role}"` },
-        { status: 400, headers: corsHeaders(origin) }
-      );
-    }
+    const first = norm(b.first_name);
+    const last  = norm(b.last_name);
 
-    const payload = {
-      role,
-      name: sanitizeString(body.name),
-      email: sanitizeString(body.email),
-      phone: sanitizeString(body.phone),
-      consent: !!body.consent,
+    // Build a payload that covers standard fields + your labeled customs
+    const payload: any = {
+      // Standard contact properties GHL accepts
+      name: [first, last].filter(Boolean).join(" "),
+      firstName: first,
+      lastName: last,
+      email: norm(b.email),
+      phone: norm(b.phone),
       source: process.env.GHL_WAITLIST_SOURCE || "PreLaunch",
-      page: sanitizeString(body.page) || req.headers.get("referer") || "",
+      type: roleToContactType(b.role),
 
-      // owner
-      property_address: sanitizeString(body.property_address),
-      approval: sanitizeString(body.approval),
-      lease_term: sanitizeString(body.lease_term),
-      notes: sanitizeString(body.notes),
+      // Owner address (standard fields)
+      address1: norm(b.address1),
+      city:     norm(b.city),
+      state:    norm(b.state),
+      postalCode: norm(b.postal_code),
 
-      // operator
-      markets: sanitizeString(body.markets),
-      experience_level: sanitizeString(body.experience_level),
-      budget: sanitizeString(body.budget),
-      approval_preference: sanitizeString(body.approval_preference),
+      // Some systems also look at "website" for the website field;
+      // we use a separate "website_coach" input to avoid the honeypot.
+      website: norm(b.website_coach),
 
-      // coach
-      program: sanitizeString(body.program),
-      audience_size: sanitizeString(body.audience_size),
-      website_or_social: sanitizeString(body.website_or_social),
+      // Duplicate into custom_fields with your exact labels where relevant
+      custom_fields: {
+        // Owner-specific
+        "Willing to allow STR/MTR?": norm(b.willing_to_allow_strmtr),
+        "Preferred Lease Term": norm(b.preferred_lease_term),
+        "Notes - Building rules, HOA notes, etc.": norm(b.notes__building_rules_hoa_notes_etc),
 
-      // UTM
-      utm_source: sanitizeString(body.utm_source),
-      utm_medium: sanitizeString(body.utm_medium),
-      utm_campaign: sanitizeString(body.utm_campaign),
-      utm_term: sanitizeString(body.utm_term),
-      utm_content: sanitizeString(body.utm_content),
+        // Operator-specific
+        "Markets": norm(b.markets),
+        "Experience Level": norm(b.experience_level),
+        "Approval Preference": norm(b.approval_preference),
+        "How did you hear about us?": norm(b.how_did_you_hear_about_us),
 
-      submitted_at: new Date().toISOString(),
+        // Coach-specific
+        "Program/Brand Name - Coach": norm(b.program_brand),
+      },
+
+      // Business Name (standard) for coach
+      companyName: norm(b.company_name),
+
+      // helpful metadata
+      headers: {
+        referer: req.headers.get("referer") || "",
+        "user-agent": req.headers.get("user-agent") || "",
+        page: norm(b.page),
+        consent: (b.consent === true || b.consent === "Yes") ? "Yes" : "No",
+      },
     };
 
-    const gh = await fetch(target, {
+    const gh = await fetch(hook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -113,17 +131,20 @@ export async function POST(req: Request) {
 
     if (!gh.ok) {
       const text = await gh.text().catch(() => "");
-      return NextResponse.json(
-        { ok: false, error: `GHL webhook ${gh.status}: ${text || gh.statusText}` },
-        { status: 502, headers: corsHeaders(origin) }
+      return cors(
+        NextResponse.json(
+          { ok: false, error: `GHL webhook ${gh.status}: ${text || gh.statusText}` },
+          { status: 502 }
+        ),
+        origin
       );
     }
 
-    return NextResponse.json({ ok: true }, { headers: corsHeaders(origin) });
+    return cors(NextResponse.json({ ok: true }), origin);
   } catch (err: any) {
-    return NextResponse.json(
-      { ok: false, error: err?.message || "Unhandled server error" },
-      { status: 500, headers: corsHeaders(origin) }
+    return cors(
+      NextResponse.json({ ok: false, error: err?.message || "Unhandled server error" }, { status: 500 }),
+      origin
     );
   }
-}  
+}
