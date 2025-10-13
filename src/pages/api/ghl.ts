@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const role = s(body.role);
     const target = urlByRole(role);
     if (!target) {
-      res.status(400).json({ ok: false, error: Missing or invalid role: "" });
+      res.status(400).json({ ok: false, error: `Missing or invalid role: "${role}"` });
       return;
     }
 
@@ -123,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!gh.ok) {
       const text = await gh.text().catch(() => '');
-      res.status(502).json({ ok: false, error: GHL webhook :  });
+      res.status(502).json({ ok: false, error: `GHL webhook: ${text}` });
       return;
     }
 
