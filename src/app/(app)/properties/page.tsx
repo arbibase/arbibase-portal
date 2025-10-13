@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { clsx } from "clsx";
+import { supabase } from '../../../lib/supabase'
+import type { User } from '@supabase/supabase-js';
+import clsx from "clsx";
 
 type Property = {
   id: string;
@@ -23,15 +24,24 @@ export default function Properties() {
   const [state, setState] = useState("");
   const [type, setType] = useState("");
   const [approval, setApproval] = useState("");
-
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) location.href = "/login";
+    if (!supabase) {
+      // If supabase client is not available, redirect to login as a fallback
+      location.href = "/login";
+      return;
+    }
+    supabase.auth.getUser().then(({ data }: { data: { user: User | null } | null }) => {
+      if (!data?.user) location.href = "/login";
       else setReady(true);
     });
   }, []);
 
   async function load() {
+    if (!supabase) {
+      // Supabase client is not available — redirect to login as a fallback and avoid runtime errors
+      location.href = "/login";
+      return;
+    }
     let query = supabase.from("properties").select("*").order("created_at", { ascending: false }).limit(60);
     if (city) query = query.ilike("city", `%${city}%`);
     if (state) query = query.ilike("state", `%${state}%`);

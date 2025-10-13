@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from '../../lib/supabase'
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -12,6 +12,10 @@ export default function Login() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg("");
+    if (!supabase) {
+      setMsg("Authentication client not initialized. Please try again later.");
+      return;
+    }
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({

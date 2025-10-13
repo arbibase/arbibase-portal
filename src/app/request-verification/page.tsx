@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase } from '../../lib/supabase'
 
 type PropItem = { address: string; city: string; state: string; url: string };
 
@@ -18,8 +18,12 @@ export default function RequestVerification() {
 
   useEffect(() => {
     (async () => {
+      if (!supabase) {
+        console.error("Supabase client is not available");
+        return router.replace("/login");
+      }
       const { data } = await supabase.auth.getUser();
-      if (!data.user) return router.replace("/login");
+      if (!data?.user) return router.replace("/login");
       setUserId(data.user.id);
       setEmail(data.user.email ?? "");
     })();
@@ -48,6 +52,11 @@ export default function RequestVerification() {
     if (!email || !validEmail(email)) return setStatus("Please enter a valid email.");
     if (!propsList.some((p) => p.address || p.url)) {
       return setStatus("Please add at least one property (address or URL).");
+    }
+
+    if (!supabase) {
+      console.error("Supabase client is not available");
+      return setStatus("Supabase client is not available. Please log in again.");
     }
 
     setSubmitting(true);

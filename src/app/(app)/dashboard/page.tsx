@@ -2,14 +2,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import clsx from 'clsx';
+import { supabase } from '../../../lib/supabase'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
+    if (!supabase) {
+      router.replace("/login");
+      return;
+    }
+
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) router.replace("/login");
       else setUser(data.user);
