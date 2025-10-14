@@ -89,17 +89,19 @@ export default function RequestVerification() {
         if (itemsErr) throw itemsErr;
       }
 
-      // 3) push to GHL (do not block UX if it fails)
+// 3) push to GHL (do not block UX if it fails)
   const r = await fetch("/api/ghl", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      role: "Request",               // <— optional; API now also auto-detects
       email,
       request_id: requestId,
+      notes,
       properties: items,
+      page: location.href,
     }),
   });
-
   const j = await r.json().catch(() => ({}));
   console.log("GHL proxy resp:", r.status, j);
   if (!r.ok) throw new Error("Webhook failed: " + (j?.error || r.status));
