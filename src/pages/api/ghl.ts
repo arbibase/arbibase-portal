@@ -159,16 +159,13 @@ function s(value: any): string {
   return sanitize(value);
 }
 
-function urlByRole(role: string): string | null {
-  if (!role) return null;
-  const r = role.toLowerCase();
-  const map: Record<string, string | undefined> = {
-    owner: process.env.GHL_WEBHOOK_OWNER,
-    operator: process.env.GHL_WEBHOOK_OPERATOR,
-    coach: process.env.GHL_WEBHOOK_COACH,
-    waitlist: process.env.GHL_WEBHOOK_WAITLIST,
-  };
-  const url = map[r] || process.env.GHL_WEBHOOK_DEFAULT;
-  return url ?? null;
+function urlByRole(role?: string) {
+  const r = (role || "").toLowerCase();
+  if (r === "owner")    return process.env.GHL_WEBHOOK_OWNER;
+  if (r === "operator") return process.env.GHL_WEBHOOK_OPERATOR;
+  if (r === "coach")    return process.env.GHL_WEBHOOK_COACH;
+  if (r === "request" || r === "Request".toLowerCase())  return process.env.GHL_WEBHOOK_REQUEST; // ✅ NEW LINE
+  return null;
 }
+
 

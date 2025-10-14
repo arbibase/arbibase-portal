@@ -90,24 +90,29 @@ export default function RequestVerification() {
       }
 
 // 3) push to GHL (do not block UX if it fails)
+try {
   const r = await fetch("/api/ghl", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      role: "Request",               // <— optional; API now also auto-detects
+      role: "Request",
       email,
       request_id: requestId,
       notes,
       properties: items,
-      page: location.href,
+      page: typeof window !== "undefined" ? window.location.href : null,
     }),
   });
+
   const j = await r.json().catch(() => ({}));
   console.log("GHL proxy resp:", r.status, j);
-  if (!r.ok) throw new Error("Webhook failed: " + (j?.error || r.status));
-  
-  setStatus("Request sent! Redirecting…");
-  setTimeout(() => router.push("/dashboard"), 1000);
+  if (!r.ok) console.warn("Webhook failed: " + (j?.error || r.status));
+} catch (err) {
+  console.warn("GHL webhook error:", err);
+}
+
+setStatus("Request sent! Redirecting…");
+setTimeout(() => router.push("/dashboard"), 1000);
 } catch (err:any) {
   console.error("Submit error:", err);
   setStatus("Error: " + (err.message ?? String(err)));
