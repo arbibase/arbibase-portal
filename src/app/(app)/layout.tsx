@@ -13,9 +13,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </nav>
-            <body className="antialiased">
+            <main className="antialiased">
         {children}
-      </body>
+      </main>
     </div>
   );
 }

@@ -15,6 +15,7 @@ export default function RequestVerification() {
   ]);
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pageUrl, setPageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -27,6 +28,9 @@ export default function RequestVerification() {
       setUserId(data.user.id);
       setEmail(data.user.email ?? "");
     })();
+    if (typeof window !== "undefined") {
+      setPageUrl(window.location.href);
+    }
   }, [router]);
 
   const addProperty = () =>
@@ -100,7 +104,7 @@ try {
       request_id: requestId,
       notes,
       properties: items,
-      page: typeof window !== "undefined" ? window.location.href : null,
+      page: pageUrl,
     }),
   });
 
