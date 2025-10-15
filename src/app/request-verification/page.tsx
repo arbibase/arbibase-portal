@@ -99,8 +99,15 @@ try {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      role: "Request",
-      email,
+body: JSON.stringify({
+  role: 'request',   // lowercase to match API
+  email,
+  request_id: requestId,
+  notes,
+  properties: items,
+  page: location.href,
+}),     
+email,
       request_id: requestId,
       notes,
       properties: items,
