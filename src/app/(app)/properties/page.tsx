@@ -2,23 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import PropertyCard, { type Property } from "../../../components/PropertyCard";
-import SearchBar from "@/components/SearchBar";
-import { useTier } from "@/lib/useTier";
-
-export function PropertiesPage() {
-  const { tier, loading } = useTier();
-
-  if (loading) return <p>Loading...</p>;
-
-  return (
-    <main className="min-h-screen px-6 py-12">
-      <SearchBar
-        tier={tier === "beta" ? "basic" : "advanced"}
-        onSearch={(filters) => console.log("filters", filters)}
-      />
-    </main>
-  );
-}
+import SearchBar from "../../../components/SearchBar";
 
 type SearchFilters = {
   q: string;
