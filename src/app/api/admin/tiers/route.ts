@@ -1,51 +1,49 @@
 // src/app/api/admin/tiers/route.ts
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+// user-scoped client to read current session
+function getUserClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  // next/headers cookies() is the proper way in app router handlers
+  const cookieStore = cookies();
+  const cookieHeader = cookieStore.toString();
+  return createClient(url, anon, {
+    global: { headers: { Cookie: cookieHeader } as any },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
 type Tier = "beta" | "pro" | "premium";
 
-function getUserClient(cookies: Headers) {
-  // user-scoped client to read current session
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(url, anon, {
-    global: { headers: { Cookie: cookies.get("cookie") ?? "" } as any },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  return supabase;
-}
-
-// Enforce admin via current session
-async function requireAdmin(request: Request) {
-  const cookieHeader = new Headers({ cookie: request.headers.get("cookie") ?? "" });
-  const userClient = getUserClient(cookieHeader);
+async function requireAdmin() {
+  const userClient = getUserClient();
   const { data } = await userClient.auth.getUser();
   const user = data.user;
-  if (!user || user.user_metadata?.role !== "admin") {
-    return { ok: false, user: null };
-  }
-  return { ok: true, user };
+  return !!(user && user.user_metadata?.role === "admin");
 }
 
-// GET /api/admin/tiers?query=&page=1&limit=20
+// GET /api/admin/tiers
 export async function GET(request: Request) {
-  const check = await requireAdmin(request);
-  if (!check.ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const query = (searchParams.get("query") || "").trim().toLowerCase();
-  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
 
-  // List auth users (email, metadata)
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: limit });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // naive filter on server result (auth API doesn’t support search by email/name directly)
-  const rows = (data?.users || []).filter((u) => {
+  const users = (data?.users || []).filter((u) => {
     if (!query) return true;
     const name = (u.user_metadata?.full_name || "").toLowerCase();
     const email = (u.email || "").toLowerCase();
@@ -53,7 +51,7 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json({
-    users: rows.map((u) => ({
+    users: users.map((u) => ({
       id: u.id,
       email: u.email,
       full_name: u.user_metadata?.full_name || "",
@@ -63,14 +61,13 @@ export async function GET(request: Request) {
     })),
     page,
     limit,
-    count: rows.length,
+    count: users.length,
   });
 }
 
 // POST /api/admin/tiers  { userId, tier }
 export async function POST(request: Request) {
-  const check = await requireAdmin(request);
-  if (!check.ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json().catch(() => null);
   const { userId, tier } = body || {};
@@ -78,10 +75,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
     user_metadata: { tier },
   });
-
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({
