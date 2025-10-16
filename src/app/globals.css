@@ -259,3 +259,19 @@ h1,h2,h3,h4{ text-shadow:0 0 10px rgba(0,200,255,.14), 0 0 24px rgba(0,200,255,.
 
 /* Footer trim: hide product links block if present */
 footer .foot-right .col:first-child { display:none; }         /* Product column */
+
+/* ----- Force 3-column grids inside the dashboard (no Tailwind required) ----- */
+.dashboard .cols-3 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 820px) { .dashboard .cols-3 { grid-template-columns: repeat(3, 1fr); } }
+
+/* Quick card style (used in Quick actions) */
+.dashboard .qa-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  box-shadow: 0 10px 24px rgba(0,0,0,.28);
+  padding: 14px;
+}
+
+/* Spotlight card image smaller */
+.dashboard .spot-img { height: 132px; width: 100%; object-fit: cover; }
