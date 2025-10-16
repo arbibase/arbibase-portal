@@ -1,5 +1,5 @@
 // src/app/(app)/layout.tsx
-import "../globals.css";
+import "./globals.css";
 import Link from "next/link";
 
 export const metadata = { title: "ArbiBase App", description: "Operator portal" };

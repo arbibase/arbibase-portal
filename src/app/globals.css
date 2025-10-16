@@ -43,14 +43,41 @@ body{
 h1,h2,h3,h4{ text-shadow:0 0 10px rgba(0,200,255,.14), 0 0 24px rgba(0,200,255,.10) }
 
 /* Search block (reused on Properties page) */
-.search{max-width:980px;width:100%;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:18px;margin:0 auto}
-.search-tabs{display:flex;gap:8px;margin-bottom:12px}
-.tab{flex:1;border:1px solid #2a3340;background:#0f141b;color:#e8eef4;border-radius:12px;padding:12px 14px;font-weight:700;text-align:center;cursor:pointer}
-.tab.active{background:linear-gradient(180deg,var(--accent),#04a7d6);color:#04242e;border-color:#059dbf;box-shadow:0 6px 22px rgba(0,200,255,.25)}
+.search{
+  max-width:1100px;
+  width:100%;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:18px;
+  margin:20px auto;
+  box-shadow:0 10px 40px rgba(0,0,0,.4), 0 0 30px rgba(0,200,255,.05) inset;
+}
+
 .search-grid{display:grid;gap:10px}
-@media(min-width:900px){.search-grid{grid-template-columns:2fr 1fr 1fr}}
-@media(min-width:900px){.search-grid.advanced{grid-template-columns:repeat(3,1fr)}}
-.search input,.search select{width:100%;background:#0f141c;border:1px solid #2a3441;color:var(--text);padding:12px;border-radius:12px}
+@media(min-width:900px){
+  /* 5 columns: address, city, state, type, approval */
+  .search-grid{grid-template-columns:2fr 1fr 1fr 1fr 1fr; align-items:center}
+}
+
+.search input,.search select{
+  width:100%;
+  background:#0f141c;
+  border:1px solid #2a3441;
+  color:var(--text);
+  padding:12px;
+  border-radius:12px;
+  transition:.2s ease;
+}
+.search input:focus,.search select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 12px rgba(0,200,255,.2);
+  outline:none;
+}
+
+/* submit row spans full width and hugs the right on desktop */
+.search .actions{display:flex;justify-content:flex-start;margin-top:10px}
+@media(min-width:900px){.search .actions{grid-column:1 / -1;justify-content:flex-end}}
 
 /* Property card label badge */
 .badge{position:absolute;top:10px;right:10px;border-radius:999px;padding:6px 10px;font-size:.8rem}
