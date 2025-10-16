@@ -84,3 +84,104 @@ h1,h2,h3,h4{ text-shadow:0 0 10px rgba(0,200,255,.14), 0 0 24px rgba(0,200,255,.
 .badge.blue{background:#3b82f6;color:#fff}
 .badge.green{background:#10b981;color:#061621}
 .badge.orange{background:#f59e0b;color:#fff}
+
+/* ============ Dashboard-specific tidy ============ */
+.dashboard {
+  --dash-gap: 16px;
+  --dash-gap-lg: 24px;
+  --dash-icon: 16px;
+  --dash-icon-lg: 18px;
+  --dash-stat-icon: 36px;
+}
+
+/* Stop global section padding from inflating dashboard blocks */
+.dashboard section { padding: 0; }
+
+/* Consistent icon sizing inside the dashboard */
+.dashboard svg { vertical-align: middle; }
+.dashboard .btn svg,
+.dashboard .link svg,
+.dashboard .dashboard-icon,
+.dashboard .dashboard-icon svg {
+  width: var(--dash-icon);
+  height: var(--dash-icon);
+  flex: 0 0 var(--dash-icon);
+}
+
+/* Stat cards */
+.dashboard .stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  box-shadow: 0 10px 24px rgba(0,0,0,.28);
+}
+.dashboard .stat-icon {
+  width: var(--dash-stat-icon);
+  height: var(--dash-stat-icon);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #0f141c;
+  border: 1px solid #2a3341;
+}
+.dashboard .stat-icon svg {
+  width: var(--dash-icon-lg);
+  height: var(--dash-icon-lg);
+}
+
+/* Lists */
+.dashboard .list-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.dashboard .list-item:first-child { border-top: 0; }
+.dashboard .list-item .btn svg { width: 16px; height: 16px; }
+
+/* Updates timeline */
+.dashboard .update-dot {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, .15);
+}
+
+/* Spotlight cards */
+.dashboard .spot {
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  box-shadow: 0 10px 24px rgba(0,0,0,.28);
+}
+.dashboard .spot-img { height: 160px; object-fit: cover; width: 100%; }
+.dashboard .spot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  background: rgba(12,15,20,.75);
+  border: 1px solid #2a3340;
+  color: var(--text);
+}
+
+/* Grid rhythm */
+.dashboard .grid-3 { display: grid; gap: var(--dash-gap); grid-template-columns: 1fr; }
+@media (min-width: 700px) { .dashboard .grid-3 { grid-template-columns: repeat(3, 1fr); } }
+.dashboard .col { display: grid; gap: var(--dash-gap); }
+
+/* Buttons inside dashboard, slightly smaller */
+.dashboard .btn { padding: 10px 14px; border-radius: 12px; gap: 6px; }
