@@ -15,9 +15,47 @@ export default function RequestVerification() {
   ]);
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [pageUrl, setPageUrl] = useState<string | null>(null);
+const [pageUrl, setPageUrl] = useState<string | null>(null);
 
-  useEffect(() => {
+  // sample tiers data (was incorrectly destructured from an array)
+  const tiers = [
+    {
+      idx: 0,
+      id: "0599de3c-33f0-4759-aa88-d40f57f23d15",
+      full_name: "Standard",
+      role: "operator",
+      created_at: "2025-10-16 04:13:45.025495+00",
+      tier: "beta",
+      property_requests_limit: 25,
+    },
+    {
+      idx: 1,
+      id: "248b4dee-09e4-4f90-bdc7-55884813a004",
+      full_name: "Pro",
+      role: "operator",
+      created_at: "2025-10-16 04:23:48.002079+00",
+      tier: "Pro",
+      property_requests_limit: 50,
+    },
+    {
+      idx: 2,
+      id: "272f97e1-3473-4540-9815-a64495b68362",
+      full_name: "Premium",
+      role: "operator",
+      created_at: "2025-10-06 22:51:48.934172+00",
+      tier: "Premium",
+      property_requests_limit: 100,
+    },
+  ];
+
+  // derive defaults from sample data; propertyRequests is a runtime value (requests used) so default to 0
+  const tier = tiers[0].tier;
+  const propertyRequests = 0;
+
+if (tier === "beta" && propertyRequests > 25)
+  return alert("You’ve reached your 25 requests this month. Upgrade to Pro.");
+
+useEffect(() => {
     (async () => {
       if (!supabase) return router.replace("/login");
       const { data } = await supabase.auth.getUser();

@@ -358,8 +358,8 @@ const featured3 = choose3();
 /* ----------------------- */
 const QUICK_LINKS = [
   { title: "Explore verified doors", description: "Review high-confidence homes and suites that are ready to onboard.", href: "/properties", cta: "Browse properties", icon: Compass },
-  { title: "Request a property check", description: "Submit an address and we’ll confirm licensing, HOAs, and local rules for you.", href: "/request-verification", cta: "Start a request", icon: CheckCircle2 },
-  { title: "Keep tabs on favourites", description: "See every opportunity you’ve starred and how each one is progressing.", href: "/favorites", cta: "Open favourites", icon: Star },
+  { title: "Request a property check", description: "Submit an address and we’ll confirm availability and local rules for you.", href: "/request-verification", cta: "Start a request", icon: CheckCircle2 },
+  { title: "Keep tabs on favourites", description: "See every opportunity you’ve starred at once ", href: "/favorites", cta: "Open favourites", icon: Star },
 ];
 
 const UPDATES = [

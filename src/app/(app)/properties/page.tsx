@@ -2,7 +2,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import PropertyCard, { type Property } from "../../../components/PropertyCard";
-import SearchBar from "../../../components/SearchBar";
+import SearchBar from "@/components/SearchBar";
+import { useTier } from "@/lib/useTier";
+
+export function PropertiesPage() {
+  const { tier, loading } = useTier();
+
+  if (loading) return <p>Loading...</p>;
+
+  return (
+    <main className="min-h-screen px-6 py-12">
+      <SearchBar
+        tier={tier === "beta" ? "basic" : "advanced"}
+        onSearch={(filters) => console.log("filters", filters)}
+      />
+    </main>
+  );
+}
 
 type SearchFilters = {
   q: string;
@@ -61,6 +77,7 @@ export default function Properties() {
       if (!signal?.aborted) setLoading(false);
     }
   }
+  
 
   // initial load
   useEffect(() => {
@@ -90,16 +107,17 @@ export default function Properties() {
             {countText}
           </p>
           <h1 id="properties-title" className="text-2xl font-extrabold">
-            Properties
+            Property Browser
           </h1>
           <p className="lead" style={{ marginTop: 6 }}>
-            Explore operator-friendly doors. Use filters to narrow by city, type, and approval.
+            Explore operator-friendly properties. Use filters to narrow by city, type, and approval.
           </p>
         </header>
 
         {/* Search / filters (your shared component, wrapped in themed container) */}
         <div className="search">
           <SearchBar
+            tier="basic"
             initial={filters}
             onSearch={(v) => setFilters(v as unknown as SearchFilters)}
           />
