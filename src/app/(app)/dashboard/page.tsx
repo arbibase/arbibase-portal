@@ -190,6 +190,19 @@ export default function Dashboard() {
   const spotsNew = spotlights.filter((s) => /newly verified/i.test(s.status));
   const spotsRefreshed = spotlights.filter((s) => /lead refreshed/i.test(s.status));
 
+  const pickThree = (): Spotlight[] => {
+  // Prefer: 1 spotlight, 1 newly verified, 1 lead refreshed (fallback: fill from all)
+  const first = spotsAll[0];
+  const second = spotsNew.find(s => s !== first);
+  const third = spotsRefreshed.find(s => s !== first && s !== second);
+  const picked = [first, second, third].filter(Boolean) as Spotlight[];
+  if (picked.length < 3) {
+    for (const s of spotsAll) if (!picked.includes(s) && picked.length < 3) picked.push(s);
+  }
+  return picked.slice(0, 3);
+};
+const spot3 = pickThree();
+
   return (
     <main className="dashboard relative min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
       <BrandStyle />
@@ -214,61 +227,60 @@ export default function Dashboard() {
             experiences.
           </p>
 
-          {/* Stats — one row, 3 columns */}
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="group relative flex items-start gap-3 overflow-hidden rounded-2xl border border-neutral-200/70 bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/60"
-                style={{ borderRadius: "var(--brand-radius)" }}
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 ring-1 ring-inset ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-700">
-                  <stat.icon className="h-4.5 w-4.5" />
-                </div>
-                <div className="leading-tight">
-                  <div className="text-[22px] font-semibold">{stat.value}</div>
-                  <div className="text-[12px] text-neutral-500 dark:text-neutral-400">{stat.label}</div>
-                  <div className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">{stat.detail}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+{/* Stats — one row, 3 columns */}
+<div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+  {stats.map((stat) => (
+    <div
+      key={stat.label}
+      className="group relative flex items-start gap-3 overflow-hidden rounded-2xl border border-neutral-200/70 bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/60"
+      style={{ borderRadius: "var(--brand-radius)" }}
+    >
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 ring-1 ring-inset ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-700">
+        <stat.icon className="h-4.5 w-4.5" />
+      </div>
+      <div className="leading-tight">
+        <div className="text-[22px] font-semibold">{stat.value}</div>
+        <div className="text-[12px] text-neutral-500 dark:text-neutral-400">{stat.label}</div>
+        <div className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">{stat.detail}</div>
+      </div>
+    </div>
+  ))}
+</div>
+
         </div>
       </section>
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 pb-16 sm:grid-cols-12">
-        {/* Quick Actions — boxed 3 columns */}
-        <section className="sm:col-span-7">
-          <Card>
-            <CardHeader eyebrow="Your next steps" title="Quick actions" cta={{ href: "/properties", label: "Jump back in" }} />
-            <div className="grid gap-3 sm:grid-cols-3">
-              {QUICK_LINKS.map((link) => (
-                <article
-                  key={link.title}
-                  className="qa-card rounded-2xl border border-neutral-200/70 bg-white/80 p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/60"
-                  style={{ borderRadius: "var(--brand-radius)" }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 ring-1 ring-inset ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-700">
-                      <link.icon className="h-4.5 w-4.5" />
-                    </div>
-                    <div>
-                      <h3 className="text-[15px] font-medium">{link.title}</h3>
-                      <p className="mt-0.5 text-[13px] text-neutral-600 dark:text-neutral-300">{link.description}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <Link
-                      className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
-                      href={link.href}
-                    >
-                      {link.cta} <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </Card>
+<Card>
+  <CardHeader eyebrow="Your next steps" title="Quick actions" cta={{ href: "/properties", label: "Jump back in" }} />
+  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+    {QUICK_LINKS.map((link) => (
+      <article
+        key={link.title}
+        className="rounded-2xl border border-neutral-200/70 bg-white/80 p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/60"
+        style={{ borderRadius: "var(--brand-radius)" }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 ring-1 ring-inset ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-700">
+            <link.icon className="h-4.5 w-4.5" />
+          </div>
+          <div>
+            <h3 className="text-[15px] font-medium">{link.title}</h3>
+            <p className="mt-0.5 text-[13px] text-neutral-600 dark:text-neutral-300">{link.description}</p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <Link
+            className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
+            href={link.href}
+          >
+            {link.cta} <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </article>
+    ))}
+  </div>
+</Card>
 
           {/* Updates — centered news roll */}
           <Card className="mt-6">
@@ -293,59 +305,70 @@ export default function Dashboard() {
               ))}
             </ul>
           </Card>
-        </section>
 
         {/* Spotlights — 3 columns with smaller images */}
         <section className="sm:col-span-5">
-          <Card>
-            <div className="mb-2">
-              <p className="text-[12px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Fresh opportunities</p>
-              <h2 className="text-[18px] font-semibold tracking-tight">Spotlight listings</h2>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-3">
-              <SpotlightColumn title="Spotlight" items={spotsAll} />
-              <SpotlightColumn title="Newly verified" items={spotsNew} />
-              <SpotlightColumn title="Lead refreshed" items={spotsRefreshed} />
-            </div>
-          </Card>
+<Card>
+  <div className="mb-2">
+    <p className="text-[12px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Fresh opportunities</p>
+    <h2 className="text-[18px] font-semibold tracking-tight">Spotlight listings</h2>
+  </div>
+  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    {spot3.map((p) => (
+      <article
+        key={p.name + p.location}
+        className="overflow-hidden rounded-2xl border border-neutral-200/70 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900/60"
+        style={{ borderRadius: "var(--brand-radius)" }}
+      >
+        {p.photo && <img src={p.photo} alt={p.name} className="h-32 w-full object-cover" />}
+        <div className="p-3">
+          <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[11px] font-medium text-neutral-900 shadow-sm backdrop-blur dark:bg-neutral-900/80 dark:text-neutral-100">
+            <Sparkles className="h-3 w-3" /> {p.status}
+          </span>
+          <h3 className="text-[15px] font-semibold tracking-tight">{p.name}</h3>
+          <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] text-neutral-500 dark:text-neutral-400">
+            <MapPin className="h-3.5 w-3.5" /> {p.location}
+          </p>
+          <p className="mt-1 text-[13px] text-neutral-600 dark:text-neutral-300">{p.summary}</p>
+        </div>
+      </article>
+    ))}
+  </div>
+</Card>
 
           {/* Support — dark gradient to preserve contrast */}
           <Card className="mt-6">
-            <div
-              className="rounded-2xl p-5"
-              style={{
-                background:
-                  "linear-gradient(180deg, #0f141c, #0b1017) , radial-gradient(400px 120px at 10% 0%, rgba(0,200,255,.08), transparent 60%)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <p className="text-[11px] uppercase tracking-wide text-neutral-400">Need a hand?</p>
-              <h2 className="mt-1 text-[16px] font-semibold text-white">Your concierge team is on standby</h2>
-              <p className="mt-1 text-[13px] text-neutral-300">
-                Message us for tailored onboarding help, market insights, or to schedule a strategy session. We reply
-                within a business day—usually sooner.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  href="mailto:support@arbibase.com"
-                  style={{ backgroundColor: "var(--brand-primary)" }}
-                >
-                  <Mail className="h-4 w-4" /> Email support
-                </Link>
-                <Link
-                  className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-[13px] font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  href="/request-verification"
-                  style={{
-                    borderColor: "color-mix(in oklab, var(--brand-primary) 35%, #2a2a2a)",
-                    background: "transparent",
-                  }}
-                >
-                  Book a call <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
+<div
+  className="rounded-2xl p-5"
+  style={{
+    background:
+      "linear-gradient(180deg, #0f141c, #0b1017), radial-gradient(400px 120px at 10% 0%, rgba(0,200,255,.08), transparent 60%)",
+    border: "1px solid var(--border)",
+  }}
+>
+  <p className="text-[11px] uppercase tracking-wide text-neutral-400">Need a hand?</p>
+  <h2 className="mt-1 text-[16px] font-semibold text-white">Your concierge team is on standby</h2>
+  <p className="mt-1 text-[13px] text-neutral-300">
+    Message us for tailored onboarding help, market insights, or to schedule a strategy session. We reply
+    within a business day—usually sooner.
+  </p>
+  <div className="mt-3 flex flex-wrap gap-2">
+    <Link
+      className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      href="mailto:support@arbibase.com"
+      style={{ backgroundColor: "var(--brand-primary)" }}
+    >
+      <Mail className="h-4 w-4" /> Email support
+    </Link>
+    <Link
+      className="inline-flex items-center gap-1 rounded-full border px-3 py-2 text-[13px] font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      href="/request-verification"
+      style={{ borderColor: "color-mix(in oklab, var(--brand-primary) 35%, #2a2a2a)", background: "transparent" }}
+    >
+      Book a call <ArrowRight className="h-4 w-4" />
+    </Link>
+  </div>
+</div>
           </Card>
         </section>
       </div>
