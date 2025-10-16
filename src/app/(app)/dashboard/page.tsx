@@ -18,11 +18,12 @@ import {
 } from "lucide-react";
 
 /**
- * ArbiBase Dashboard v2.2 — Tidy scale, consistent spacing, single footer
- * - Tightened icon sizing and spacing (no oversized SVGs)
- * - Balanced type scale and section rhythm
- * - Removed local footer to avoid duplicate site footer
- * - Still brand‑tokenized and wired for Supabase data
+ * ArbiBase Dashboard v2.3 — 3-col layout + centered news + dark concierge
+ * - Stats: single 3-col row
+ * - Quick actions: boxed 3-col cards
+ * - Updates: centered “news roll”, check next to date
+ * - Spotlights: smaller images + 3 columns (Spotlight / Newly verified / Lead refreshed)
+ * - Concierge: dark gradient background for contrast
  */
 
 /** BRAND TOKENS */
@@ -137,7 +138,7 @@ export default function Dashboard() {
           .from("properties")
           .select("name, city, state, summary:headline, featured, verified, verified_at, photo_url")
           .eq("featured", true)
-          .limit(2);
+          .limit(6);
 
         const mapped: Spotlight[] = (spotlightData || []).map((p: any) => ({
           name: p.name || "Untitled listing",
@@ -184,8 +185,13 @@ export default function Dashboard() {
   if (isLoading) return <Skeleton />;
   if (!user) return null;
 
+  // Helper groupings for spotlights
+  const spotsAll = spotlights;
+  const spotsNew = spotlights.filter((s) => /newly verified/i.test(s.status));
+  const spotsRefreshed = spotlights.filter((s) => /lead refreshed/i.test(s.status));
+
   return (
-    <main className="relative min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+    <main className="dashboard relative min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
       <BrandStyle />
       <BackgroundTexture />
 
@@ -204,11 +210,11 @@ export default function Dashboard() {
           </h1>
           <p className="mt-2 max-w-2xl text-[14px] leading-6 text-neutral-600 dark:text-neutral-300">
             Curate rentals, track verifications, and collaborate with your team from one welcoming
-            place. We’ll surface what needs your attention so you can focus on guest‑ready
+            place. We’ll surface what needs your attention so you can focus on guest-ready
             experiences.
           </p>
 
-          {/* Stats */}
+          {/* Stats — one row, 3 columns */}
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {stats.map((stat) => (
               <div
@@ -231,13 +237,17 @@ export default function Dashboard() {
       </section>
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 pb-16 sm:grid-cols-12">
-        {/* Quick Actions */}
+        {/* Quick Actions — boxed 3 columns */}
         <section className="sm:col-span-7">
           <Card>
             <CardHeader eyebrow="Your next steps" title="Quick actions" cta={{ href: "/properties", label: "Jump back in" }} />
-            <div className="divide-y divide-neutral-200/70 dark:divide-neutral-800">
+            <div className="grid gap-3 sm:grid-cols-3">
               {QUICK_LINKS.map((link) => (
-                <article key={link.title} className="flex flex-col items-start justify-between gap-3 py-4 sm:flex-row sm:items-center">
+                <article
+                  key={link.title}
+                  className="qa-card rounded-2xl border border-neutral-200/70 bg-white/80 p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/60"
+                  style={{ borderRadius: "var(--brand-radius)" }}
+                >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 ring-1 ring-inset ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-700">
                       <link.icon className="h-4.5 w-4.5" />
@@ -247,76 +257,91 @@ export default function Dashboard() {
                       <p className="mt-0.5 text-[13px] text-neutral-600 dark:text-neutral-300">{link.description}</p>
                     </div>
                   </div>
-                  <Link className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900" href={link.href}>
-                    {link.cta}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  <div className="mt-3">
+                    <Link
+                      className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
+                      href={link.href}
+                    >
+                      {link.cta} <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </article>
               ))}
             </div>
           </Card>
 
-          {/* Updates */}
+          {/* Updates — centered news roll */}
           <Card className="mt-6">
-            <CardHeader eyebrow="Team updates" title="What’s new at ArbiBase" />
-            <ul className="mt-2 space-y-5">
+            <div className="text-center">
+              <p className="text-[12px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Team updates</p>
+              <h2 className="text-[22px] font-extrabold tracking-tight">What’s new at ArbiBase</h2>
+            </div>
+            <ul className="mx-auto mt-3 max-w-2xl space-y-5">
               {UPDATES.map((update) => (
-                <li key={update.title} className="relative pl-6">
-                  <span className="absolute left-0 top-0 inline-flex h-4 w-4 items-center justify-center rounded-full text-white"
-                    style={{ backgroundColor: "var(--brand-primary)" }}>
-                    <CheckCircle2 className="h-3 w-3" />
-                  </span>
-                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400">{update.date}</p>
-                  <h3 className="mt-0.5 text-[14px] font-semibold">{update.title}</h3>
-                  <p className="text-[13px] text-neutral-600 dark:text-neutral-300">{update.body}</p>
+                <li key={update.title}>
+                  <div className="mx-auto inline-flex items-center gap-2 text-[12px] text-neutral-500 dark:text-neutral-400">
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_0_0_3px_rgba(52,211,153,.15)]">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 13l4 4L19 7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <span>{update.date}</span>
+                  </div>
+                  <h3 className="mt-1 text-[18px] font-extrabold">{update.title}</h3>
+                  <p className="text-[14px] text-neutral-600 dark:text-neutral-300">{update.body}</p>
                 </li>
               ))}
             </ul>
           </Card>
         </section>
 
-        {/* Spotlights */}
+        {/* Spotlights — 3 columns with smaller images */}
         <section className="sm:col-span-5">
           <Card>
-            <CardHeader eyebrow="Fresh opportunities" title="Spotlight listings" />
-            <div className="grid gap-4">
-              {spotlights.map((p) => (
-                <article key={p.name} className="overflow-hidden rounded-2xl border border-neutral-200/70 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900/60" style={{ borderRadius: "var(--brand-radius)" }}>
-                  <div className="relative h-40 w-full overflow-hidden">
-                    {p.photo ? (
-                      <img src={p.photo} alt={p.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-400 dark:bg-neutral-800">
-                        <span className="text-sm">No photo</span>
-                      </div>
-                    )}
-                    <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[11px] font-medium text-neutral-900 shadow-sm backdrop-blur dark:bg-neutral-900/80 dark:text-neutral-100">
-                      <Sparkles className="h-3 w-3" /> {p.status}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-[15px] font-semibold tracking-tight">{p.name}</h3>
-                    <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] text-neutral-500 dark:text-neutral-400">
-                      <MapPin className="h-3.5 w-3.5" /> {p.location}
-                    </p>
-                    <p className="mt-2 text-[13px] text-neutral-600 dark:text-neutral-300">{p.summary}</p>
-                  </div>
-                </article>
-              ))}
+            <div className="mb-2">
+              <p className="text-[12px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Fresh opportunities</p>
+              <h2 className="text-[18px] font-semibold tracking-tight">Spotlight listings</h2>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <SpotlightColumn title="Spotlight" items={spotsAll} />
+              <SpotlightColumn title="Newly verified" items={spotsNew} />
+              <SpotlightColumn title="Lead refreshed" items={spotsRefreshed} />
             </div>
           </Card>
 
-          {/* Support */}
+          {/* Support — dark gradient to preserve contrast */}
           <Card className="mt-6">
-            <div className="rounded-2xl p-5" style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--brand-primary) 7%, white), color-mix(in oklab, var(--brand-accent) 8%, white))" }}>
-              <p className="text-[11px] uppercase tracking-wide text-neutral-600 dark:text-neutral-300">Need a hand?</p>
-              <h2 className="mt-1 text-[16px] font-semibold">Your concierge team is on standby</h2>
-              <p className="mt-1 text-[13px] text-neutral-700 dark:text-neutral-300">Message us for tailored onboarding help, market insights, or to schedule a strategy session. We reply within a business day—usually sooner.</p>
+            <div
+              className="rounded-2xl p-5"
+              style={{
+                background:
+                  "linear-gradient(180deg, #0f141c, #0b1017) , radial-gradient(400px 120px at 10% 0%, rgba(0,200,255,.08), transparent 60%)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <p className="text-[11px] uppercase tracking-wide text-neutral-400">Need a hand?</p>
+              <h2 className="mt-1 text-[16px] font-semibold text-white">Your concierge team is on standby</h2>
+              <p className="mt-1 text-[13px] text-neutral-300">
+                Message us for tailored onboarding help, market insights, or to schedule a strategy session. We reply
+                within a business day—usually sooner.
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Link className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" href="mailto:support@arbibase.com" style={{ backgroundColor: "var(--brand-primary)" }}>
+                <Link
+                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  href="mailto:support@arbibase.com"
+                  style={{ backgroundColor: "var(--brand-primary)" }}
+                >
                   <Mail className="h-4 w-4" /> Email support
                 </Link>
-                <Link className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" href="/request-verification" style={{ borderColor: "color-mix(in oklab, var(--brand-primary) 35%, #e5e5e5)", background: "white", color: "color-mix(in oklab, var(--brand-primary) 70%, #111)" }}>
+                <Link
+                  className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-[13px] font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  href="/request-verification"
+                  style={{
+                    borderColor: "color-mix(in oklab, var(--brand-primary) 35%, #2a2a2a)",
+                    background: "transparent",
+                  }}
+                >
                   Book a call <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -352,7 +377,13 @@ function recentlyVerified(verified_at?: string) {
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={"rounded-3xl border border-neutral-200/70 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/60 " + className} style={{ borderRadius: "var(--brand-radius)" }}>
+    <div
+      className={
+        "rounded-3xl border border-neutral-200/70 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/60 " +
+        className
+      }
+      style={{ borderRadius: "var(--brand-radius)" }}
+    >
       {children}
     </div>
   );
@@ -366,7 +397,15 @@ function CardHeader({ eyebrow, title, cta }: { eyebrow?: string; title: string; 
         <h2 className="text-[18px] font-semibold tracking-tight">{title}</h2>
       </div>
       {cta && (
-        <Link href={cta.href} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" style={{ borderColor: "color-mix(in oklab, var(--brand-primary) 35%, #e5e5e5)", background: "white", color: "color-mix(in oklab, var(--brand-primary) 70%, #111)" }}>
+        <Link
+          href={cta.href}
+          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[13px] font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          style={{
+            borderColor: "color-mix(in oklab, var(--brand-primary) 35%, #e5e5e5)",
+            background: "white",
+            color: "color-mix(in oklab, var(--brand-primary) 70%, #111)",
+          }}
+        >
           {cta.label}
           <ArrowRight className="h-4 w-4" />
         </Link>
@@ -415,6 +454,40 @@ function BackgroundTexture() {
       <div className="absolute left-1/2 top-[-120px] h-[220px] w-[380px] -translate-x-1/2 rounded-full bg-gradient-radial from-[color:var(--brand-primary)]/20 via-transparent to-transparent blur-2xl" />
       <div className="absolute right-[10%] top-[34%] h-[160px] w-[160px] rounded-full bg-gradient-radial from-[color:var(--brand-accent)]/25 via-transparent to-transparent blur-2xl" />
       <div className="absolute left-[6%] bottom-[12%] h-[180px] w-[180px] rounded-full bg-gradient-radial from-[color:var(--brand-primary-soft)]/22 via-transparent to-transparent blur-2xl" />
+    </div>
+  );
+}
+
+/* ---- Spotlight column component ---- */
+function SpotlightColumn({ title, items }: { title: string; items: Spotlight[] }) {
+  return (
+    <div>
+      <h3 className="mb-2 text-[12px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{title}</h3>
+      {items.length === 0 ? (
+        <div
+          className="rounded-2xl border border-neutral-200/70 bg-white/60 p-4 text-sm text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/60"
+          style={{ borderRadius: "var(--brand-radius)" }}
+        >
+          No items yet.
+        </div>
+      ) : (
+        items.map((p) => (
+          <article
+            key={p.name}
+            className="mb-3 overflow-hidden rounded-2xl border border-neutral-200/70 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900/60"
+            style={{ borderRadius: "var(--brand-radius)" }}
+          >
+            {p.photo && <img src={p.photo} alt={p.name} className="h-32 w-full object-cover" />}
+            <div className="p-3">
+              <h4 className="text-[15px] font-semibold tracking-tight">{p.name}</h4>
+              <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] text-neutral-500 dark:text-neutral-400">
+                <MapPin className="h-3.5 w-3.5" /> {p.location}
+              </p>
+              <p className="mt-1 text-[13px] text-neutral-600 dark:text-neutral-300">{p.summary}</p>
+            </div>
+          </article>
+        ))
+      )}
     </div>
   );
 }
