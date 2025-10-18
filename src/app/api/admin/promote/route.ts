@@ -1,29 +1,25 @@
 // src/app/api/admin/promote/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { cookies } from "next/headers";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 
-function getServerSupabase() {
-  return createServerComponentClient({ cookies });
-}
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getServerSupabase();
-    const { data: me } = await supabase.auth.getUser();
+    // Authenticate the caller with cookies
+    // Authenticate the caller using the Admin client (helper not available)
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: me } = await supabaseAdmin.auth.getUser();
     const myRole = (me.user?.user_metadata?.role as string) || "";
     if (!me.user || myRole !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
     const { userId, makeAdmin } = await req.json();
     if (!userId || typeof makeAdmin !== "boolean") {
       return NextResponse.json({ error: "Missing userId/makeAdmin" }, { status: 400 });
     }
 
-    const supabaseAdmin = getSupabaseAdmin();
+    // Directly update via Admin SDK — NO fetches here
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       user_metadata: { role: makeAdmin ? "admin" : "operator" },
     });
@@ -34,6 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
 }
+
 const userId = "<REPLACE_WITH_USER_ID>";
 const makeAdmin = false;
 
