@@ -1,82 +1,62 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { ShieldCheck, Search, Loader2 } from "lucide-react";
+import { ShieldCheck, Search, Loader2, Ban, UserX, UserCog } from "lucide-react";
 import Link from "next/link";
 
 type Tier = "beta" | "pro" | "premium";
-type Row = { id: string; email: string; full_name: string; tier: Tier; role?: string; created_at?: string };
+type Row = {
+  id: string;
+  email: string;
+  full_name: string;
+  tier: Tier;
+  role?: string;
+  created_at?: string;
+  suspended?: boolean;
+};
 
 export default function AdminTiersPage() {
-  const [me, setMe] = useState<{ id: string; role: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState<string | null>(null);
-  const [query, setQuery]   = useState("");
-  const [rows, setRows]     = useState<Row[]>([]);
+  const [query, setQuery] = useState("");
+  const [rows, setRows] = useState<Row[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      try {
-        if (!supabase) {
-          location.href = "/login";
-          return;
-        }
-        const { data } = await supabase.auth.getUser();
-        const user = data.user;
-        if (!user) {
-          location.href = "/login";
-          return;
-        }
-        const role = (user.user_metadata?.role as string) || "";
-        setMe({ id: user.id, role });
+      if (!supabase) return (location.href = "/login");
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (!user) return (location.href = "/login");
 
-        if (role !== "admin") {
-          location.href = "/dashboard";
-          return;
-        }
+      const role = (user.user_metadata?.role as string) || "";
+      if (role !== "admin") return (location.href = "/dashboard");
 
-        await load();
-      } catch (e: any) {
-        setError(e.message || "Failed to load admin data.");
-      } finally {
-        setLoading(false);
-      }
+      await load();
+      setLoading(false);
     })();
   }, []);
 
   async function load() {
-    setError(null);
-    try {
-      const url = new URL("/api/admin/tiers", window.location.origin);
-      if (query.trim()) url.searchParams.set("query", query.trim());
-      const res = await fetch(url.toString(), { cache: "no-store" });
-
-      if (!res.ok) {
-        // read text so we can surface useful info (e.g. 500 HTML page)
-        const text = await res.text();
-        throw new Error(`API ${res.status}. ${text.slice(0, 160)}`);
-      }
-
-      const j = await res.json();
-      setRows(j.users || []);
-    } catch (e: any) {
-      setRows([]);
-      setError(e.message || "Failed to load users.");
-    }
+    const url = new URL("/api/admin/tiers", location.origin);
+    if (query.trim()) url.searchParams.set("query", query.trim());
+    const res = await fetch(url.toString(), { cache: "no-store" });
+    const j = await res.json();
+    setRows(j.users || []);
   }
 
-  async function updateTier(userId: string, tier: Tier) {
+  async function setAdmin(userId: string, makeAdmin: boolean) {
     setBusyId(userId);
     try {
-      const res = await fetch("/api/admin/tiers", {
+      const r = await fetch("/api/admin/promote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, tier }),
+        body: JSON.stringify({ userId, makeAdmin }),
       });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j?.error || `API ${res.status}`);
-      setRows(prev => prev.map(r => (r.id === userId ? { ...r, tier } : r)));
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.error || "Failed");
+      setRows((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: makeAdmin ? "admin" : "operator" } : u))
+      );
     } catch (e: any) {
       alert(e.message || String(e));
     } finally {
@@ -84,19 +64,35 @@ export default function AdminTiersPage() {
     }
   }
 
-  async function setAdmin(userId: string, makeAdmin: boolean) {
+  async function toggleSuspend(userId: string, suspend: boolean) {
+    if (!confirm(suspend ? "Suspend this account?" : "Unsuspend this account?")) return;
     setBusyId(userId);
     try {
-      const res = await fetch("/api/admin/promote", {
-        method: "POST",
+      const r = await fetch(`/api/admin/users/${userId}/suspend`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, makeAdmin }),
+        body: JSON.stringify({ suspend }),
       });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j?.error || "Failed to update admin role");
-      setRows(prev =>
-        prev.map(r => (r.id === userId ? { ...r, role: makeAdmin ? "admin" : "operator" } : r))
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.error || "Failed");
+      setRows((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, suspended: suspend } : u))
       );
+    } catch (e: any) {
+      alert(e.message || String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteUser(userId: string, email: string) {
+    if (!confirm(`Permanently delete ${email}? This cannot be undone.`)) return;
+    setBusyId(userId);
+    try {
+      const r = await fetch(`/api/admin/users/${userId}/delete`, { method: "DELETE" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j?.error || "Failed");
+      setRows((prev) => prev.filter((u) => u.id !== userId));
     } catch (e: any) {
       alert(e.message || String(e));
     } finally {
@@ -126,22 +122,11 @@ export default function AdminTiersPage() {
           <header className="flex items-center justify-between" style={{ marginBottom: 12 }}>
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5" />
-              <h1 style={{ margin: 0 }}>Admin • User Tiers</h1>
+              <h1 style={{ margin: 0 }}>Admin • User Management</h1>
             </div>
             <Link className="btn" href="/dashboard">Back to dashboard</Link>
           </header>
 
-          {error && (
-            <div className="card" style={{ padding: 12, marginBottom: 12, borderColor: "#7f1d1d", background: "rgba(127,29,29,.18)" }}>
-              <strong style={{ color: "#fecaca" }}>Error:</strong>{" "}
-              <span style={{ color: "#fecaca" }}>{error}</span>
-              <div className="fine" style={{ color: "#fca5a5" }}>
-                Open <code>/api/admin/tiers</code> in a new tab to see the raw error.
-              </div>
-            </div>
-          )}
-
-          {/* Search */}
           <div className="search" style={{ margin: 0 }}>
             <div className="search-grid" style={{ gridTemplateColumns: "1fr auto" }}>
               <div className="flex items-center gap-2">
@@ -159,7 +144,6 @@ export default function AdminTiersPage() {
             </div>
           </div>
 
-          {/* Table */}
           <div style={{ marginTop: 14, overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
               <thead>
@@ -168,55 +152,95 @@ export default function AdminTiersPage() {
                   <th style={{ padding: "10px 12px" }}>Email</th>
                   <th style={{ padding: "10px 12px" }}>Tier</th>
                   <th style={{ padding: "10px 12px" }}>Role</th>
+                  <th style={{ padding: "10px 12px" }}>Status</th>
                   <th style={{ padding: "10px 12px" }} />
                 </tr>
               </thead>
-    <tbody>
-      {filtered.map((u) => (
-        <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
-          <td style={{ padding: "10px 12px" }}>{u.full_name || "—"}</td>
-          <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.email}</td>
-          <td style={{ padding: "10px 12px" }}>
-            <select
-              value={u.tier}
-              onChange={(e) => updateTier(u.id, e.target.value as Tier)}
-              disabled={busyId === u.id}
-              className="rounded-lg border bg-[#0f141c] border-[#2a3441] px-2 py-1"
-            >
-              <option value="beta">Beta ($98)</option>
-              <option value="pro">Pro ($297)</option>
-              <option value="premium">Premium ($496)</option>
-            </select>
-          </td>
-          <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.role || "—"}</td>
-          <td style={{ padding: "10px 12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: "var(--muted)" }}>
-                {u.role === "admin" ? <strong>admin</strong> : "operator"}
-              </span>
-              <button
-                className={u.role === "admin" ? "btn" : "btn primary"}
-                onClick={() => setAdmin(u.id, u.role !== "admin")}
-                disabled={busyId === u.id}
-                title={u.role === "admin" ? "Revoke admin privileges" : "Grant admin privileges"}
-              >
-                {u.role === "admin" ? "Revoke" : "Grant"}
-              </button>
-            </div>
-            {busyId === u.id && <Loader2 className="h-4 w-4 animate-spin" style={{ marginLeft: 8 }} />}
-          </td>
-        </tr>
-      ))}
-      {filtered.length === 0 && !error && (
-        <tr>
-          <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
-            No users found.
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
+              <tbody>
+                {filtered.map((u) => (
+                  <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
+                    <td style={{ padding: "10px 12px" }}>{u.full_name || "—"}</td>
+                    <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.email}</td>
+                    <td style={{ padding: "10px 12px" }}>
+                      <select
+                        value={u.tier}
+                        onChange={(e) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.id === u.id ? { ...r, tier: e.target.value as Tier } : r
+                            )
+                          )
+                        }
+                        className="rounded-lg border bg-[#0f141c] border-[#2a3441] px-2 py-1"
+                        disabled
+                        title="Tier editing via billing coming soon"
+                      >
+                        <option value="beta">Beta ($98)</option>
+                        <option value="pro">Pro ($297)</option>
+                        <option value="premium">Premium ($496)</option>
+                      </select>
+                    </td>
+                    <td style={{ padding: "10px 12px" }}>{u.role || "operator"}</td>
+                    <td style={{ padding: "10px 12px" }}>
+                      {u.suspended ? (
+                        <span style={{ color: "#f59e0b" }}>Suspended</span>
+                      ) : (
+                        <span style={{ color: "#34d399" }}>Active</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "10px 12px" }}>
+                      <div className="flex items-center gap-2">
+                        {/* Grant / Revoke Admin */}
+                        <button
+                          className="btn"
+                          disabled={busyId === u.id}
+                          onClick={() => setAdmin(u.id, u.role !== "admin")}
+                          title={u.role === "admin" ? "Revoke admin" : "Grant admin"}
+                        >
+                          <UserCog className="h-4 w-4" />
+                          {u.role === "admin" ? "Revoke Admin" : "Grant Admin"}
+                        </button>
+
+                        {/* Suspend / Unsuspend */}
+                        <button
+                          className="btn"
+                          disabled={busyId === u.id}
+                          onClick={() => toggleSuspend(u.id, !u.suspended)}
+                          title={u.suspended ? "Unsuspend account" : "Suspend account"}
+                        >
+                          <Ban className="h-4 w-4" />
+                          {u.suspended ? "Unsuspend" : "Suspend"}
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          className="btn"
+                          style={{ borderColor: "#ef4444", color: "#ef4444" }}
+                          disabled={busyId === u.id}
+                          onClick={() => deleteUser(u.id, u.email)}
+                          title="Delete account"
+                        >
+                          <UserX className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: 16, color: "var(--muted)" }}>
+                      No users found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="fine" style={{ marginTop: 10, color: "var(--muted)" }}>
+            Only admins can use this page. Admin actions are audited via Supabase logs.
+          </p>
         </div>
       </div>
     </main>

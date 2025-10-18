@@ -9,3 +9,12 @@ export function getSupabaseAdmin() {
   }
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
+// src/lib/supabaseServer.ts
+import { cookies } from "next/headers";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+
+export function getServerSupabase() {
+  const cookieStore = cookies();
+  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  return supabase;
+}
