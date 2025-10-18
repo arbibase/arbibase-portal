@@ -16,6 +16,9 @@ import {
   Mail,
   ArrowRight,
 } from "lucide-react";
+// …imports…
+import Prism from "@/components/Prism";
+
 
 /**
  * ArbiBase Dashboard v2.3 — 3-col layout + centered news + dark concierge
@@ -42,6 +45,12 @@ type Spotlight = {
   summary: string;
   photo?: string;
 };
+
+function recentlyVerified(verified_at?: string) {
+  if (!verified_at) return false;
+  const t = Date.parse(verified_at);
+  return Number.isFinite(t) && Date.now() - t < 1000 * 60 * 60 * 24 * 14;
+}
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -218,12 +227,20 @@ const featured3 = choose3();
           <h1 className="text-balance text-[28px] font-semibold tracking-tight sm:text-[32px]">
             Let’s build your next great stay.
           </h1>
-          <p className="mt-2 max-w-2xl text-[14px] leading-6 text-neutral-600 dark:text-neutral-300">
-            Curate rentals, track verifications, and collaborate with your team from one welcoming
-            place. We’ll surface what needs your attention so you can focus on guest-ready
-            experiences.
-          </p>
-
+      <p className="mt-2 max-w-2xl text-[14px] leading-6 text-neutral-600 dark:text-neutral-300">
+        Curate rentals, track verifications, and collaborate with your team from one welcoming
+      </p>
+  <Prism
+    animationType="3drotate"
+    timeScale={0.5}
+    glow={1.1}
+    bloom={1}
+    noise={0.35}
+    scale={3.4}
+    hueShift={0.12}
+    colorFrequency={1.2}
+    suspendWhenOffscreen
+  />
 {/* Stats — 3 columns */}
 <div className="cols-3">
   {stats.map((stat) => (
@@ -367,12 +384,6 @@ const UPDATES = [
   { title: "Coach marketplace applications reopen next week", date: "Yesterday", body: "We’ll send you an email when the cohort is live so you can reserve a slot early." },
   { title: "Product tip: Collaborate from the pipeline view", date: "This week", body: "Share shortlists with partners and track comments alongside your saved homes." },
 ];
-
-function recentlyVerified(verified_at?: string) {
-  if (!verified_at) return false;
-  const t = Date.parse(verified_at);
-  return Number.isFinite(t) && Date.now() - t < 1000 * 60 * 60 * 24 * 14;
-}
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (

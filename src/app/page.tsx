@@ -1,13 +1,21 @@
+import Prism from "@/components/Prism";
+
 export default function Home() {
   return (
-    <main className="container mx-auto p-6">
-      <h1 className="text-3xl font-extrabold">ArbiBase Portal</h1>
-      <p className="mt-2" style={{color:"#9aa5b1"}}>Login to access properties.</p>
-      <div className="mt-4 flex gap-3">
-        <a className="btn btn-primary" href="/login">Login</a>
-        <a className="btn" href="/dashboard">Dashboard</a>
-      </div>
-    </main>
+    <>
+      <main className="container mx-auto p-6">
+        <h1 className="text-3xl font-extrabold">ArbiBase Portal</h1>
+        <p className="mt-2" style={{color:"#9aa5b1"}}>Login to access properties.</p>
+        <div className="mt-4 flex gap-3">
+          <a className="btn btn-primary" href="/login">Login</a>
+          <a className="btn" href="/dashboard">Dashboard</a>
+        </div>
+      </main>
+      <main className="prism-wrap">
+        <Prism animationType="rotate" glow={1.2} timeScale={0.35} />
+        {/* hero / content */}
+      </main>
+    </>
   );
 }
 

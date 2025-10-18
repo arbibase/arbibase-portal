@@ -1,0 +1,18 @@
+.prism-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;       /* background-only */
+  z-index: 0;                 /* sit behind content */
+  opacity: 0.9;               /* tweak if needed */
+}
+
+/* Optional: darker pages */
+.theme-dark .prism-container {
+  opacity: 1;
+}
+
+/* Make sure your content wrapper is relative so the canvas can anchor */
+.prism-wrap {
+  position: relative;
+  isolation: isolate;         /* keep effects behind */
+}
