@@ -29,7 +29,7 @@ export default function Prism({
   animationType = "rotate",
   glow = 1,
   offset = { x: 0, y: 0 },
-  noise = 0.5,
+  noise = 0.06,        // << much lower noise
   transparent = true,
   scale = 3.6,
   hueShift = 0,
@@ -38,7 +38,7 @@ export default function Prism({
   inertia = 0.05,
   bloom = 1,
   suspendWhenOffscreen = false,
-  timeScale = 0.5,
+  timeScale = 0.22,     // << slower movement feels premium
   respectReducedMotion = true,
 }: PrismProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -98,7 +98,8 @@ export default function Prism({
       const HOVSTR = Math.max(0, hoverStrength || 1);
       const INERT = Math.max(0, Math.min(1, inertia || 0.12));
 
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      // render a tad higher-res to reduce visible grain on big screens
+      const dpr = Math.min(3, window.devicePixelRatio || 1);
       const renderer = new Renderer({
         dpr,
         alpha: transparent,
@@ -115,6 +116,9 @@ export default function Prism({
         width: "100%",
         height: "100%",
         display: "block",
+        // UHD look: soften micro-noise but keep color richness
+        filter: "blur(2px) saturate(115%) contrast(102%)",
+        willChange: "filter, transform",
       } as CSSStyleDeclaration);
       container.appendChild(gl.canvas);
 
@@ -212,7 +216,7 @@ export default function Prism({
             z -= d;
             o += (sin((p.y + z) * cf + vec4(0.0, 1.0, 2.0, 3.0)) + 1.0) / d;
           }
-          o = tanh4(o * o * (uGlow * uBloom) / 1e5);
+          o = tanh4(o * o * (uGlow * uBloom) / 1.6e5);
           vec3 col = o.rgb;
           float n = rand(gl_FragCoord.xy + vec2(iTime));
           col += (n - 0.5) * uNoise;
@@ -252,7 +256,7 @@ export default function Prism({
           uInvBaseHalf: { value: 1 / BASE_HALF },
           uInvHeight: { value: 1 / H },
           uMinAxis: { value: Math.min(BASE_HALF, H) },
-          uPxScale: { value: 1 / ((gl.drawingBufferHeight || 1) * 0.1 * SCALE) },
+          uPxScale: { value: 1 / ((gl.drawingBufferHeight || 1) * 0.075 * SCALE) },
           uTimeScale: { value: TS },
         },
       });
@@ -269,7 +273,7 @@ export default function Prism({
         offsetPxBuf[0] = (offX ?? 0) * dprLocal;
         offsetPxBuf[1] = (offY ?? 0) * dprLocal;
         program.uniforms.uPxScale.value =
-          1 / ((gl.drawingBufferHeight || 1) * 0.1 * SCALE);
+          1 / ((gl.drawingBufferHeight || 1) * 0.075 * SCALE);
       };
 
       const ro = new ResizeObserver(resize);
@@ -431,25 +435,32 @@ export default function Prism({
       stopped = true;
       if (cleanup) cleanup();
     };
-  }, [
-    height,
-    baseWidth,
-    animationType,
-    glow,
-    noise,
-    offset?.x,
-    offset?.y,
-    scale,
-    transparent,
-    hueShift,
-    colorFrequency,
-    timeScale,
-    hoverStrength,
-    inertia,
-    bloom,
-    suspendWhenOffscreen,
-    respectReducedMotion,
-  ]);
+}, [
+  height,
+  baseWidth,
+  animationType,
+  glow,
+  noise,
+  offset?.x,
+  offset?.y,
+  scale,
+  transparent,
+  hueShift,
+  colorFrequency,
+  timeScale,
+  hoverStrength,
+  inertia,
+  bloom,
+  suspendWhenOffscreen,
+  respectReducedMotion,
+]);
 
-  return <div className="prism-container" ref={containerRef} />;
+return (
+  <div
+    ref={containerRef}
+    className="prism-container"
+    aria-hidden="true"
+    style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}
+  />
+);
 }
