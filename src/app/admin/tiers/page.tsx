@@ -84,6 +84,26 @@ export default function AdminTiersPage() {
     }
   }
 
+  async function setAdmin(userId: string, makeAdmin: boolean) {
+    setBusyId(userId);
+    try {
+      const res = await fetch("/api/admin/promote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, makeAdmin }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j?.error || "Failed to update admin role");
+      setRows(prev =>
+        prev.map(r => (r.id === userId ? { ...r, role: makeAdmin ? "admin" : "operator" } : r))
+      );
+    } catch (e: any) {
+      alert(e.message || String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const filtered = useMemo(() => rows, [rows]);
 
   if (loading) {
@@ -151,43 +171,52 @@ export default function AdminTiersPage() {
                   <th style={{ padding: "10px 12px" }} />
                 </tr>
               </thead>
-              <tbody>
-                {filtered.map((u) => (
-                  <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
-                    <td style={{ padding: "10px 12px" }}>{u.full_name || "—"}</td>
-                    <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.email}</td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <select
-                        value={u.tier}
-                        onChange={(e) => updateTier(u.id, e.target.value as Tier)}
-                        disabled={busyId === u.id}
-                        className="rounded-lg border bg-[#0f141c] border-[#2a3441] px-2 py-1"
-                      >
-                        <option value="beta">Beta ($98)</option>
-                        <option value="pro">Pro ($297)</option>
-                        <option value="premium">Premium ($496)</option>
-                      </select>
-                    </td>
-                    <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.role || "—"}</td>
-                    <td style={{ padding: "10px 12px" }}>
-                      {busyId === u.id && <Loader2 className="h-4 w-4 animate-spin" />}
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && !error && (
-                  <tr>
-                    <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
-                      No users found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="fine" style={{ marginTop: 10, color: "var(--muted)" }}>
-            Tip: set user <code>role</code> to <b>admin</b> in their <code>user_metadata</code> to grant access.
-          </p>
+    <tbody>
+      {filtered.map((u) => (
+        <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
+          <td style={{ padding: "10px 12px" }}>{u.full_name || "—"}</td>
+          <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.email}</td>
+          <td style={{ padding: "10px 12px" }}>
+            <select
+              value={u.tier}
+              onChange={(e) => updateTier(u.id, e.target.value as Tier)}
+              disabled={busyId === u.id}
+              className="rounded-lg border bg-[#0f141c] border-[#2a3441] px-2 py-1"
+            >
+              <option value="beta">Beta ($98)</option>
+              <option value="pro">Pro ($297)</option>
+              <option value="premium">Premium ($496)</option>
+            </select>
+          </td>
+          <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.role || "—"}</td>
+          <td style={{ padding: "10px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "var(--muted)" }}>
+                {u.role === "admin" ? <strong>admin</strong> : "operator"}
+              </span>
+              <button
+                className={u.role === "admin" ? "btn" : "btn primary"}
+                onClick={() => setAdmin(u.id, u.role !== "admin")}
+                disabled={busyId === u.id}
+                title={u.role === "admin" ? "Revoke admin privileges" : "Grant admin privileges"}
+              >
+                {u.role === "admin" ? "Revoke" : "Grant"}
+              </button>
+            </div>
+            {busyId === u.id && <Loader2 className="h-4 w-4 animate-spin" style={{ marginLeft: 8 }} />}
+          </td>
+        </tr>
+      ))}
+      {filtered.length === 0 && !error && (
+        <tr>
+          <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
+            No users found.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
         </div>
       </div>
     </main>
