@@ -39,16 +39,33 @@ export default function AdminTiersPage() {
 async function load() {
   const url = new URL("/api/admin/tiers", location.origin);
   if (query.trim()) url.searchParams.set("query", query.trim());
-  const res = await fetch(url.toString(), { cache: "no-store", credentials: "include" });
+  const res = await authFetch(url.href, { cache: "no-store", credentials: "include" });
 
   const j = await res.json();
   setRows(j.users || []);
 }
 
+async function authFetch(input: RequestInfo, init: RequestInit = {}) {
+  // If supabase isn't initialized, just perform a plain fetch (no auth header)
+  if (!supabase) {
+    const headers = new Headers(init.headers);
+    if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
+    return fetch(input, { ...init, headers, credentials: "include" });
+  }
+
+  const { data } = await supabase.auth.getSession();
+  const session = data?.session;
+  const headers = new Headers(init.headers);
+  if (session?.access_token) headers.set("Authorization", `Bearer ${session.access_token}`);
+  if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
+  return fetch(input, { ...init, headers, credentials: "include" });
+}
+
+
   async function setAdmin(userId: string, makeAdmin: boolean) {
     setBusyId(userId);
     try {
-      const r = await fetch("/api/admin/promote", {
+      const r = await authFetch("/api/admin/promote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, makeAdmin }),
@@ -69,7 +86,7 @@ async function load() {
     if (!confirm(suspend ? "Suspend this account?" : "Unsuspend this account?")) return;
     setBusyId(userId);
     try {
-      const r = await fetch(`/api/admin/users/${userId}/suspend`, {
+      const r = await authFetch(`/api/admin/users/${userId}/suspend`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ suspend }),
@@ -90,7 +107,7 @@ async function load() {
     if (!confirm(`Permanently delete ${email}? This cannot be undone.`)) return;
     setBusyId(userId);
     try {
-      const r = await fetch(`/api/admin/users/${userId}/delete`, { method: "DELETE" });
+      const r = await authFetch(`/api/admin/users/${userId}/delete`, { method: "DELETE" });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j?.error || "Failed");
       setRows((prev) => prev.filter((u) => u.id !== userId));
