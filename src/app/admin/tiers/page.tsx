@@ -36,13 +36,14 @@ export default function AdminTiersPage() {
     })();
   }, []);
 
-  async function load() {
-    const url = new URL("/api/admin/tiers", location.origin);
-    if (query.trim()) url.searchParams.set("query", query.trim());
-    const res = await fetch(url.toString(), { cache: "no-store" });
-    const j = await res.json();
-    setRows(j.users || []);
-  }
+async function load() {
+  const url = new URL("/api/admin/tiers", location.origin);
+  if (query.trim()) url.searchParams.set("query", query.trim());
+  const res = await fetch(url.toString(), { cache: "no-store", credentials: "include" });
+
+  const j = await res.json();
+  setRows(j.users || []);
+}
 
   async function setAdmin(userId: string, makeAdmin: boolean) {
     setBusyId(userId);

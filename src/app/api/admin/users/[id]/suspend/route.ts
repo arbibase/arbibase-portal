@@ -1,6 +1,7 @@
 // src/app/api/admin/users/[id]/suspend/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: NextRequest,
@@ -11,11 +12,11 @@ export async function PATCH(
     const { data: authData, error: getUserError } = await supabase.auth.getUser();
     const user = authData?.user ?? null;
     const myRole = (user?.user_metadata?.role as string) || "";
-    if (!user || myRole !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+if (!user || myRole !== "admin") {
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
 
-    const userId = params.id;
+const userId = params.id;
     const { suspend } = await req.json(); // boolean
     if (!userId || typeof suspend !== "boolean") {
       return NextResponse.json({ error: "Missing userId/suspend" }, { status: 400 });

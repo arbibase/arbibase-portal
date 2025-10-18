@@ -1,6 +1,7 @@
 // src/app/api/admin/users/[id]/delete/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+export const dynamic = "force-dynamic";
 
 export async function DELETE(
   _req: NextRequest,
@@ -13,12 +14,13 @@ export async function DELETE(
     if (!me.user || myRole !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const userId = params.id;
-    if (!userId) {
-      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
-    }
+const userId = params.id;
+if (!userId) {
+  return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+}
+// removed accidental promote call — not needed when deleting a user
 
-    const supabaseAdmin = getSupabaseAdmin();
+const supabaseAdmin = getSupabaseAdmin();
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (error) throw error;
 

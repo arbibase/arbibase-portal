@@ -40,10 +40,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId, tier } = await req.json();
-    if (!userId || !tier) return NextResponse.json({ error: "Missing userId/tier" }, { status: 400 });
+const { userId, tier } = await req.json();
+if (!userId || !tier) return NextResponse.json({ error: "Missing userId/tier" }, { status: 400 });
 
-    const { data, error } = await admin.auth.admin.updateUserById(userId, {
+// Directly update the user's tier using Supabase admin API
+const { data, error } = await admin.auth.admin.updateUserById(userId, {
       user_metadata: { tier },
     });
     if (error) throw error;

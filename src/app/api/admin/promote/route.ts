@@ -7,6 +7,7 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 function getServerSupabase() {
   return createServerComponentClient({ cookies });
 }
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,3 +34,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
 }
+const userId = "<REPLACE_WITH_USER_ID>";
+const makeAdmin = false;
+
+await fetch("/api/admin/promote", {
+  method: "POST",
+  credentials: "include",               // 👈 add this
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ userId, makeAdmin }),
+});
