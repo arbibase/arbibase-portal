@@ -5,54 +5,65 @@ import { ShieldCheck, Search, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 type Tier = "beta" | "pro" | "premium";
-type Row = {
-  id: string;
-  email: string;
-  full_name: string;
-  tier: Tier;
-  role?: string;
-  created_at?: string;
-};
+type Row = { id: string; email: string; full_name: string; tier: Tier; role?: string; created_at?: string };
 
 export default function AdminTiersPage() {
   const [me, setMe] = useState<{ id: string; role: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
-  const [rows, setRows] = useState<Row[]>([]);
+  const [error, setError]   = useState<string | null>(null);
+  const [query, setQuery]   = useState("");
+  const [rows, setRows]     = useState<Row[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      if (!supabase) {
-        location.href = "/login";
-        return;
-      }
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) {
-        location.href = "/login";
-        return;
-      }
+      try {
+        if (!supabase) {
+          location.href = "/login";
+          return;
+        }
+        const { data } = await supabase.auth.getUser();
+        const user = data.user;
+        if (!user) {
+          location.href = "/login";
+          return;
+        }
+        const role = (user.user_metadata?.role as string) || "";
+        setMe({ id: user.id, role });
 
-      const role = (user.user_metadata?.role as string) || "";
-      setMe({ id: user.id, role });
+        if (role !== "admin") {
+          location.href = "/dashboard";
+          return;
+        }
 
-      if (role !== "admin") {
-        location.href = "/dashboard";
-        return;
+        await load();
+      } catch (e: any) {
+        setError(e.message || "Failed to load admin data.");
+      } finally {
+        setLoading(false);
       }
-
-      await load();
-      setLoading(false);
     })();
   }, []);
 
   async function load() {
-    const url = new URL("/api/admin/tiers", location.origin);
-    if (query.trim()) url.searchParams.set("query", query.trim());
-    const res = await fetch(url.toString(), { cache: "no-store" });
-    const j = await res.json();
-    setRows(j.users || []);
+    setError(null);
+    try {
+      const url = new URL("/api/admin/tiers", window.location.origin);
+      if (query.trim()) url.searchParams.set("query", query.trim());
+      const res = await fetch(url.toString(), { cache: "no-store" });
+
+      if (!res.ok) {
+        // read text so we can surface useful info (e.g. 500 HTML page)
+        const text = await res.text();
+        throw new Error(`API ${res.status}. ${text.slice(0, 160)}`);
+      }
+
+      const j = await res.json();
+      setRows(j.users || []);
+    } catch (e: any) {
+      setRows([]);
+      setError(e.message || "Failed to load users.");
+    }
   }
 
   async function updateTier(userId: string, tier: Tier) {
@@ -63,9 +74,9 @@ export default function AdminTiersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, tier }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || "Failed to update");
-      setRows((prev) => prev.map((r) => (r.id === userId ? { ...r, tier } : r)));
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j?.error || `API ${res.status}`);
+      setRows(prev => prev.map(r => (r.id === userId ? { ...r, tier } : r)));
     } catch (e: any) {
       alert(e.message || String(e));
     } finally {
@@ -97,12 +108,20 @@ export default function AdminTiersPage() {
               <ShieldCheck className="h-5 w-5" />
               <h1 style={{ margin: 0 }}>Admin • User Tiers</h1>
             </div>
-            <Link className="btn" href="/dashboard">
-              Back to dashboard
-            </Link>
+            <Link className="btn" href="/dashboard">Back to dashboard</Link>
           </header>
 
-          {/* Search box */}
+          {error && (
+            <div className="card" style={{ padding: 12, marginBottom: 12, borderColor: "#7f1d1d", background: "rgba(127,29,29,.18)" }}>
+              <strong style={{ color: "#fecaca" }}>Error:</strong>{" "}
+              <span style={{ color: "#fecaca" }}>{error}</span>
+              <div className="fine" style={{ color: "#fca5a5" }}>
+                Open <code>/api/admin/tiers</code> in a new tab to see the raw error.
+              </div>
+            </div>
+          )}
+
+          {/* Search */}
           <div className="search" style={{ margin: 0 }}>
             <div className="search-grid" style={{ gridTemplateColumns: "1fr auto" }}>
               <div className="flex items-center gap-2">
@@ -115,9 +134,7 @@ export default function AdminTiersPage() {
                 />
               </div>
               <div className="actions">
-                <button className="btn primary" onClick={load}>
-                  Search
-                </button>
+                <button className="btn primary" onClick={load}>Search</button>
               </div>
             </div>
           </div>
@@ -151,15 +168,13 @@ export default function AdminTiersPage() {
                         <option value="premium">Premium ($496)</option>
                       </select>
                     </td>
-                    <td style={{ padding: "10px 12px", color: "var(--muted)" }}>
-                      {u.role || "—"}
-                    </td>
+                    <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.role || "—"}</td>
                     <td style={{ padding: "10px 12px" }}>
                       {busyId === u.id && <Loader2 className="h-4 w-4 animate-spin" />}
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
+                {filtered.length === 0 && !error && (
                   <tr>
                     <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
                       No users found.
@@ -171,8 +186,7 @@ export default function AdminTiersPage() {
           </div>
 
           <p className="fine" style={{ marginTop: 10, color: "var(--muted)" }}>
-            Tip: set user <code>role</code> to <b>admin</b> in their <code>user_metadata</code> to
-            grant access to this page.
+            Tip: set user <code>role</code> to <b>admin</b> in their <code>user_metadata</code> to grant access.
           </p>
         </div>
       </div>
