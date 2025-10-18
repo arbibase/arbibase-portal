@@ -4,6 +4,17 @@ import { supabase } from "@/lib/supabase";
 import { ShieldCheck, Search, Loader2, Ban, UserX, UserCog } from "lucide-react";
 import Link from "next/link";
 
+// attach the Supabase access token to every API call from this page
+async function authFetch(input: RequestInfo, init: RequestInit = {}) {
+  // Safely handle the case where supabase may be null/undefined
+  const sessionRes = supabase ? await supabase.auth.getSession() : undefined;
+  const session = sessionRes?.data?.session;
+  const headers = new Headers(init.headers);
+  if (session?.access_token) headers.set("Authorization", `Bearer ${session.access_token}`);
+  if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
+  return fetch(input, { ...init, headers, credentials: "include" });
+}
+
 type Tier = "beta" | "pro" | "premium";
 type Row = {
   id: string;
@@ -39,7 +50,7 @@ export default function AdminTiersPage() {
 async function load() {
   const url = new URL("/api/admin/tiers", location.origin);
   if (query.trim()) url.searchParams.set("query", query.trim());
-  const res = await authFetch(url.href, { cache: "no-store", credentials: "include" });
+  const res = await authFetch(url.toString(), { cache: "no-store" });
 
   const j = await res.json();
   setRows(j.users || []);
