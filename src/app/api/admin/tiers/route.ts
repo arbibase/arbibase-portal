@@ -8,18 +8,23 @@ const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Admin client for privileged operations
-const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+const admin = createClient(url, serviceKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
-// Helper: get caller user from Authorization header
+// Helper: get caller user from Authorization header (Bearer token)
 async function getCaller(req: Request) {
-  const auth = req.headers.get("authorization");
-  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return null;
+
   const client = createClient(url, anon, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: token ? { Authorization: `Bearer ${token}` } : {} },
   });
-  const { data: { user } } = await client.auth.getUser();
-  return user;
+
+  const { data, error } = await client.auth.getUser(token);
+  if (error) return null;
+  return data.user ?? null;
 }
 
 export async function GET(req: Request) {
@@ -30,7 +35,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const q = new URL(req.url).searchParams.get("query")?.trim() || "";
+    const q = new URL(req.url).searchParams.get("query")?.trim()?.toLowerCase() || "";
 
     const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (error) throw error;
@@ -44,8 +49,9 @@ export async function GET(req: Request) {
         tier: ((u.user_metadata as any)?.tier || "beta") as "beta" | "pro" | "premium",
         created_at: u.created_at,
         status: (u.user_metadata as any)?.status || "active",
+        suspended: !!(u as any).banned_until, // expose suspension flag for UI
       }))
-      .filter((u) => (q ? `${u.full_name} ${u.email}`.toLowerCase().includes(q.toLowerCase()) : true));
+      .filter((u) => (q ? `${u.full_name} ${u.email}`.toLowerCase().includes(q) : true));
 
     return NextResponse.json({ users });
   } catch (e: any) {
@@ -62,10 +68,17 @@ export async function POST(req: Request) {
     }
 
     const { userId, tier } = await req.json();
-    if (!userId || !tier) return NextResponse.json({ error: "Missing userId/tier" }, { status: 400 });
+    if (!userId || !tier) {
+      return NextResponse.json({ error: "Missing userId/tier" }, { status: 400 });
+    }
+
+    // Get target user to merge their metadata safely
+    const { data: target, error: getErr } = await admin.auth.admin.getUserById(userId);
+    if (getErr) throw getErr;
+    const existingMeta = (target.user?.user_metadata as any) || {};
 
     const { data, error } = await admin.auth.admin.updateUserById(userId, {
-      user_metadata: { ...((me?.user_metadata as any) || {}), tier },
+      user_metadata: { ...existingMeta, tier },
     });
     if (error) throw error;
 
