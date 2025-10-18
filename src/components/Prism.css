@@ -1,20 +1,32 @@
 .prism-container {
-  position: fixed;              /* covers entire viewport */
-  top: 0;
-  left: 0;
+  position: fixed;   /* cover entire viewport */
+  inset: 0;
   width: 100vw;
   height: 100vh;
-  z-index: -1;                  /* behind everything */
-  pointer-events: none;         /* don’t block clicks */
+  z-index: 0;        /* keep it behind content, but above body bg */
+  pointer-events: none;
   overflow: hidden;
 }
 
-html, body {
-  background-color: #0f141c;    /* fallback background color */
+/* Optional: a subtle UHD-style vignette */
+.prism-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 700px at 50% 110%, rgba(255,255,255,.18), transparent 60%),
+    radial-gradient(1200px 800px at 50% -10%, rgba(255,255,255,.12), transparent 60%),
+    radial-gradient(100% 100% at 50% 50%, rgba(0,0,0,.25), transparent 60%);
+  mix-blend-mode: screen;
+  opacity: .55;
 }
 
+/* Content wrapper goes above the background */
 .prism-wrap {
   position: relative;
-  z-index: 0;
-  isolation: isolate;
+  z-index: 1;
 }
+
+/* Fallback page color */
+html, body { background-color: #0f141c; }
