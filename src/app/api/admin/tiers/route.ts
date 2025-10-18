@@ -49,7 +49,7 @@ export async function GET(req: Request) {
         tier: ((u.user_metadata as any)?.tier || "beta") as "beta" | "pro" | "premium",
         created_at: u.created_at,
         status: (u.user_metadata as any)?.status || "active",
-        suspended: !!(u as any).banned_until, // expose suspension flag for UI
+        suspended: ((u.user_metadata as any)?.status === "suspended"), // expose suspension flag for UI
       }))
       .filter((u) => (q ? `${u.full_name} ${u.email}`.toLowerCase().includes(q) : true));
 

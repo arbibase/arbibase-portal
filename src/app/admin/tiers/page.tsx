@@ -40,10 +40,13 @@ export default function AdminTiersPage() {
   // Single source of truth for auth: ask server who I am.
   useEffect(() => {
     (async () => {
-      const meRes = await fetch("/api/debug/me", { credentials: "include", cache: "no-store" });
+      // 🔑 IMPORTANT: use authFetch so bearer token is included
+      const meRes = await authFetch("/api/debug/me");
       const me = await meRes.json();
+
       if (!me?.id) return void (location.href = "/login");
       if (me.role !== "admin") return void (location.href = "/dashboard");
+
       setIsAdmin(true);
       await load();
       setLoading(false);
@@ -159,9 +162,7 @@ export default function AdminTiersPage() {
               <ShieldCheck className="h-5 w-5" />
               <h1 style={{ margin: 0 }}>Admin • User Management</h1>
             </div>
-            <Link className="btn" href="/dashboard">
-              Back to dashboard
-            </Link>
+            <Link className="btn" href="/dashboard">Back to dashboard</Link>
           </header>
 
           <div className="search" style={{ margin: 0 }}>
@@ -176,9 +177,7 @@ export default function AdminTiersPage() {
                 />
               </div>
               <div className="actions">
-                <button className="btn primary" onClick={load}>
-                  Search
-                </button>
+                <button className="btn primary" onClick={load}>Search</button>
               </div>
             </div>
           </div>
