@@ -4,17 +4,6 @@ import { supabase } from "@/lib/supabase";
 import { ShieldCheck, Search, Loader2, Ban, UserX, UserCog } from "lucide-react";
 import Link from "next/link";
 
-// attach the Supabase access token to every API call from this page
-async function authFetch(input: RequestInfo, init: RequestInit = {}) {
-  // Safely handle the case where supabase may be null/undefined
-  const sessionRes = supabase ? await supabase.auth.getSession() : undefined;
-  const session = sessionRes?.data?.session;
-  const headers = new Headers(init.headers);
-  if (session?.access_token) headers.set("Authorization", `Bearer ${session.access_token}`);
-  if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
-  return fetch(input, { ...init, headers, credentials: "include" });
-}
-
 type Tier = "beta" | "pro" | "premium";
 type Row = {
   id: string;
@@ -26,59 +15,71 @@ type Row = {
   suspended?: boolean;
 };
 
+// Attach Supabase access token to API calls from this page.
+async function authFetch(input: RequestInfo, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
+
+  // If the client exists, forward the current access token.
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return fetch(input, { ...init, headers, credentials: "include", cache: "no-store" });
+}
+
 export default function AdminTiersPage() {
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Single source of truth for auth: ask server who I am.
   useEffect(() => {
     (async () => {
-      if (!supabase) return (location.href = "/login");
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) return (location.href = "/login");
-
-      const role = (user.user_metadata?.role as string) || "";
-      if (role !== "admin") return (location.href = "/dashboard");
-
+      const meRes = await fetch("/api/debug/me", { credentials: "include", cache: "no-store" });
+      const me = await meRes.json();
+      if (!me?.id) return void (location.href = "/login");
+      if (me.role !== "admin") return void (location.href = "/dashboard");
+      setIsAdmin(true);
       await load();
       setLoading(false);
     })();
   }, []);
 
-async function load() {
-  const url = new URL("/api/admin/tiers", location.origin);
-  if (query.trim()) url.searchParams.set("query", query.trim());
-  const res = await authFetch(url.toString(), { cache: "no-store" });
-
-  const j = await res.json();
-  setRows(j.users || []);
-}
-
-async function authFetch(input: RequestInfo, init: RequestInit = {}) {
-  // If supabase isn't initialized, just perform a plain fetch (no auth header)
-  if (!supabase) {
-    const headers = new Headers(init.headers);
-    if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
-    return fetch(input, { ...init, headers, credentials: "include" });
+  async function load() {
+    const url = new URL("/api/admin/tiers", location.origin);
+    if (query.trim()) url.searchParams.set("query", query.trim());
+    const res = await authFetch(url.toString());
+    const j = await res.json();
+    setRows(j.users || []);
   }
 
-  const { data } = await supabase.auth.getSession();
-  const session = data?.session;
-  const headers = new Headers(init.headers);
-  if (session?.access_token) headers.set("Authorization", `Bearer ${session.access_token}`);
-  if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
-  return fetch(input, { ...init, headers, credentials: "include" });
-}
-
+  async function updateTier(userId: string, tier: Tier) {
+    setBusyId(userId);
+    try {
+      const r = await authFetch("/api/admin/tiers", {
+        method: "POST",
+        body: JSON.stringify({ userId, tier }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.error || "Failed updating tier");
+      setRows((prev) => prev.map((u) => (u.id === userId ? { ...u, tier } : u)));
+    } catch (e: any) {
+      alert(e.message || String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   async function setAdmin(userId: string, makeAdmin: boolean) {
     setBusyId(userId);
     try {
       const r = await authFetch("/api/admin/promote", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, makeAdmin }),
       });
       const j = await r.json();
@@ -99,14 +100,11 @@ async function authFetch(input: RequestInfo, init: RequestInit = {}) {
     try {
       const r = await authFetch(`/api/admin/users/${userId}/suspend`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ suspend }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || "Failed");
-      setRows((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, suspended: suspend } : u))
-      );
+      setRows((prev) => prev.map((u) => (u.id === userId ? { ...u, suspended: suspend } : u)));
     } catch (e: any) {
       alert(e.message || String(e));
     } finally {
@@ -129,7 +127,15 @@ async function authFetch(input: RequestInfo, init: RequestInit = {}) {
     }
   }
 
-  const filtered = useMemo(() => rows, [rows]);
+  const filtered = useMemo(
+    () =>
+      rows.filter((u) =>
+        query.trim()
+          ? `${u.full_name} ${u.email}`.toLowerCase().includes(query.trim().toLowerCase())
+          : true
+      ),
+    [rows, query]
+  );
 
   if (loading) {
     return (
@@ -153,7 +159,9 @@ async function authFetch(input: RequestInfo, init: RequestInit = {}) {
               <ShieldCheck className="h-5 w-5" />
               <h1 style={{ margin: 0 }}>Admin • User Management</h1>
             </div>
-            <Link className="btn" href="/dashboard">Back to dashboard</Link>
+            <Link className="btn" href="/dashboard">
+              Back to dashboard
+            </Link>
           </header>
 
           <div className="search" style={{ margin: 0 }}>
@@ -168,7 +176,9 @@ async function authFetch(input: RequestInfo, init: RequestInit = {}) {
                 />
               </div>
               <div className="actions">
-                <button className="btn primary" onClick={load}>Search</button>
+                <button className="btn primary" onClick={load}>
+                  Search
+                </button>
               </div>
             </div>
           </div>
@@ -193,16 +203,10 @@ async function authFetch(input: RequestInfo, init: RequestInit = {}) {
                     <td style={{ padding: "10px 12px" }}>
                       <select
                         value={u.tier}
-                        onChange={(e) =>
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.id === u.id ? { ...r, tier: e.target.value as Tier } : r
-                            )
-                          )
-                        }
+                        onChange={(e) => updateTier(u.id, e.target.value as Tier)}
                         className="rounded-lg border bg-[#0f141c] border-[#2a3441] px-2 py-1"
-                        disabled
-                        title="Tier editing via billing coming soon"
+                        disabled={!isAdmin || busyId === u.id}
+                        title={!isAdmin ? "Admins only" : undefined}
                       >
                         <option value="beta">Beta ($98)</option>
                         <option value="pro">Pro ($297)</option>
@@ -219,33 +223,28 @@ async function authFetch(input: RequestInfo, init: RequestInit = {}) {
                     </td>
                     <td style={{ padding: "10px 12px" }}>
                       <div className="flex items-center gap-2">
-                        {/* Grant / Revoke Admin */}
                         <button
                           className="btn"
-                          disabled={busyId === u.id}
+                          disabled={!isAdmin || busyId === u.id}
                           onClick={() => setAdmin(u.id, u.role !== "admin")}
                           title={u.role === "admin" ? "Revoke admin" : "Grant admin"}
                         >
                           <UserCog className="h-4 w-4" />
                           {u.role === "admin" ? "Revoke Admin" : "Grant Admin"}
                         </button>
-
-                        {/* Suspend / Unsuspend */}
                         <button
                           className="btn"
-                          disabled={busyId === u.id}
+                          disabled={!isAdmin || busyId === u.id}
                           onClick={() => toggleSuspend(u.id, !u.suspended)}
                           title={u.suspended ? "Unsuspend account" : "Suspend account"}
                         >
                           <Ban className="h-4 w-4" />
                           {u.suspended ? "Unsuspend" : "Suspend"}
                         </button>
-
-                        {/* Delete */}
                         <button
                           className="btn"
                           style={{ borderColor: "#ef4444", color: "#ef4444" }}
-                          disabled={busyId === u.id}
+                          disabled={!isAdmin || busyId === u.id}
                           onClick={() => deleteUser(u.id, u.email)}
                           title="Delete account"
                         >

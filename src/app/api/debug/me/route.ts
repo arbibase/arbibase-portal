@@ -1,26 +1,21 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+// Use the *route handler* helper so cookies/session are read correctly.
+import { cookies } from "next/headers";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
-  const auth = req.headers.get("authorization");
-  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+export async function GET() {
+  const supabase = createRouteHandlerClient({ cookies });
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+  const user = data.user;
+  const role = (user?.user_metadata?.role as string) ?? null;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: token ? { Authorization: `Bearer ${token}` } : {} },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  return NextResponse.json({
+  return Response.json({
     id: user?.id ?? null,
     email: user?.email ?? null,
-    role: (user?.user_metadata as any)?.role ?? null,
+    role,
   });
 }
