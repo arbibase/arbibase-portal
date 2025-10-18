@@ -5,7 +5,14 @@ import { ShieldCheck, Search, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 type Tier = "beta" | "pro" | "premium";
-type Row = { id: string; email: string; full_name: string; tier: Tier; role?: string; created_at?: string };
+type Row = {
+  id: string;
+  email: string;
+  full_name: string;
+  tier: Tier;
+  role?: string;
+  created_at?: string;
+};
 
 export default function AdminTiersPage() {
   const [me, setMe] = useState<{ id: string; role: string } | null>(null);
@@ -17,7 +24,6 @@ export default function AdminTiersPage() {
   useEffect(() => {
     (async () => {
       if (!supabase) {
-        // supabase client not available in this environment
         location.href = "/login";
         return;
       }
@@ -27,6 +33,7 @@ export default function AdminTiersPage() {
         location.href = "/login";
         return;
       }
+
       const role = (user.user_metadata?.role as string) || "";
       setMe({ id: user.id, role });
 
@@ -90,7 +97,9 @@ export default function AdminTiersPage() {
               <ShieldCheck className="h-5 w-5" />
               <h1 style={{ margin: 0 }}>Admin • User Tiers</h1>
             </div>
-            <Link className="btn" href="/dashboard">Back to dashboard</Link>
+            <Link className="btn" href="/dashboard">
+              Back to dashboard
+            </Link>
           </header>
 
           {/* Search box */}
@@ -106,7 +115,9 @@ export default function AdminTiersPage() {
                 />
               </div>
               <div className="actions">
-                <button className="btn primary" onClick={load}>Search</button>
+                <button className="btn primary" onClick={load}>
+                  Search
+                </button>
               </div>
             </div>
           </div>
@@ -124,7 +135,7 @@ export default function AdminTiersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((u, i) => (
+                {filtered.map((u) => (
                   <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
                     <td style={{ padding: "10px 12px" }}>{u.full_name || "—"}</td>
                     <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.email}</td>
@@ -140,7 +151,9 @@ export default function AdminTiersPage() {
                         <option value="premium">Premium ($496)</option>
                       </select>
                     </td>
-                    <td style={{ padding: "10px 12px", color: "var(--muted)" }}>{u.role || "—"}</td>
+                    <td style={{ padding: "10px 12px", color: "var(--muted)" }}>
+                      {u.role || "—"}
+                    </td>
                     <td style={{ padding: "10px 12px" }}>
                       {busyId === u.id && <Loader2 className="h-4 w-4 animate-spin" />}
                     </td>
@@ -158,18 +171,11 @@ export default function AdminTiersPage() {
           </div>
 
           <p className="fine" style={{ marginTop: 10, color: "var(--muted)" }}>
-            Tip: set user <code>role</code> to <b>admin</b> in their <code>user_metadata</code> to grant access to this page.
+            Tip: set user <code>role</code> to <b>admin</b> in their <code>user_metadata</code> to
+            grant access to this page.
           </p>
         </div>
       </div>
     </main>
-  );
-}
-// src/app/admin/layout.tsx
-export function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-[#0f141c] text-white">
-      {children}
-    </div>
   );
 }
