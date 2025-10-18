@@ -460,7 +460,6 @@ return (
     ref={containerRef}
     className="prism-container"
     aria-hidden="true"
-    style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}
   />
 );
 }
