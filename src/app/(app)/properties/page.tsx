@@ -89,7 +89,7 @@ function PropertiesView() {
       <SearchBar />
 
       {mode === "gallery" ? (
-        <section className="card-grid-5">
+<section className="grid" style={{ gridTemplateColumns: "repeat(5,1fr)", gap: 16 }}>
           {filtered.map((p) => (
             <PropertyCard key={p.id} p={p} />
           ))}
