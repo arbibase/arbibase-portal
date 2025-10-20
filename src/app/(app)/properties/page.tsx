@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import type { ComponentType, Dispatch, SetStateAction } from "react";
 import SearchBar, { SearchState } from "@/components/ui/SearchBar";
 import PropertyCard, { Property } from "@/components/ui/PropertyCard";
 import MapPane from "@/components/ui/MapPane";
@@ -17,15 +18,18 @@ export default function PropertiesPage(){
     return DEMO.filter(p=>{
       const q = s.q?.toLowerCase().trim();
       if (q && !(`${p.city} ${p.state}`.toLowerCase().includes(q))) return false;
-      if (s.type && s.type !== "") {/* add type when real data has it */}
       if (s.approval && s.approval !== "Either" && s.approval !== p.approval) return false;
       if (s.min && p.rent < s.min) return false;
       if (s.max && p.rent > s.max) return false;
       return true;
     });
   },[s]);
-
   useEffect(()=>{ /* TODO: fetch from /api/properties with s as query */ },[s]);
+
+  const SearchBarTyped = SearchBar as unknown as ComponentType<{
+    value: SearchState;
+    onChange: Dispatch<SetStateAction<SearchState>>;
+  }>;
 
   return (
     <main className="container" style={{display:"grid",gap:14}}>
@@ -37,7 +41,7 @@ export default function PropertiesPage(){
         </div>
       </div>
 
-      <SearchBar value={s} onChange={setS} />
+      <SearchBarTyped value={s} onChange={setS} />
 
       {mode==="gallery" ? (
         <section className="grid" style={{gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
