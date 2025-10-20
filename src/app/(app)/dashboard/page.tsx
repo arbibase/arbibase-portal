@@ -119,7 +119,7 @@ export default function Dashboard() {
                 status: "Lead refreshed",
                 summary: "Boutique rowhomes ideal for owner-operators expanding into STR + mid-term.",
                 photo:
-                  "https://images.unsplash.com/photo-1502005229762-cf1b2da7c08e?q=80&w=1200&auto=format&fit=crop",
+                  "https://media.vrbo.com/lodging/25000000/24730000/24724800/24724749/6bb12a96.jpg?impolicy=resizecrop&rw=1200&ra=fit&q=80&w=1200&auto=format&fit=crop",
               },
             ]
       );
@@ -279,7 +279,7 @@ export default function Dashboard() {
           >
             <Mail size={16} /> Email Support
           </Link>
-          <Link href="/request-verification" className="btn" style={{ borderColor: "var(--line)" }}>
+          <Link href="/" className="btn" style={{ borderColor: "var(--line)" }}>
             Book a Call <ArrowRight size={16} />
           </Link>
         </div>
