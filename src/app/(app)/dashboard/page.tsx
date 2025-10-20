@@ -159,7 +159,7 @@ export default function Dashboard() {
             <Link className="btn primary" href="/properties">
               Browse Properties →
             </Link>
-            <Link className="btn" href="/requests">
+            <Link className="btn" href="/request-verification">
               New Request
             </Link>
           </div>

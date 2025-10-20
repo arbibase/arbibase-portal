@@ -1,12 +1,23 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
 
 type PropItem = { address: string; city: string; state: string; url: string };
 
+type TierInfo = {
+  name: "beta" | "Pro" | "Premium" | string;
+  limit: number;
+};
+
+function getDefaultTier(): TierInfo {
+  // Safe defaults if we can’t read a profile
+  return { name: "beta", limit: 25 };
+}
+
 export default function RequestVerification() {
   const router = useRouter();
+
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
@@ -15,61 +26,85 @@ export default function RequestVerification() {
   ]);
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
-const [pageUrl, setPageUrl] = useState<string | null>(null);
+  const [pageUrl, setPageUrl] = useState<string | null>(null);
 
-  // sample tiers data (was incorrectly destructured from an array)
-  const tiers = [
-    {
-      idx: 0,
-      id: "0599de3c-33f0-4759-aa88-d40f57f23d15",
-      full_name: "Standard",
-      role: "operator",
-      created_at: "2025-10-16 04:13:45.025495+00",
-      tier: "beta",
-      property_requests_limit: 25,
-    },
-    {
-      idx: 1,
-      id: "248b4dee-09e4-4f90-bdc7-55884813a004",
-      full_name: "Pro",
-      role: "operator",
-      created_at: "2025-10-16 04:23:48.002079+00",
-      tier: "Pro",
-      property_requests_limit: 50,
-    },
-    {
-      idx: 2,
-      id: "272f97e1-3473-4540-9815-a64495b68362",
-      full_name: "Premium",
-      role: "operator",
-      created_at: "2025-10-06 22:51:48.934172+00",
-      tier: "Premium",
-      property_requests_limit: 100,
-    },
-  ];
+  // usage / tier
+  const [tier, setTier] = useState<TierInfo>(getDefaultTier());
+  const [usedThisMonth, setUsedThisMonth] = useState<number>(0);
 
-  // derive defaults from sample data; propertyRequests is a runtime value (requests used) so default to 0
-  const tier = tiers[0].tier;
-  const propertyRequests = 0;
+  useEffect(() => {
+    if (typeof window !== "undefined") setPageUrl(window.location.href);
+  }, []);
 
-if (tier === "beta" && propertyRequests > 25)
-  return alert("You’ve reached your 25 requests this month. Upgrade to Pro.");
-
-useEffect(() => {
+  useEffect(() => {
     (async () => {
       if (!supabase) return router.replace("/login");
       const { data } = await supabase.auth.getUser();
       if (!data?.user) return router.replace("/login");
-      setUserId(data.user.id);
-      setEmail(data.user.email ?? "");
+
+      const { id, email } = data.user;
+      setUserId(id);
+      setEmail(email ?? "");
+
+      // --- optional: read profile/tier if you store it
+      // Expecting table "profiles": { id, plan_tier }
+      // Fallback to defaults if not found.
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("plan_tier")
+          .eq("id", id)
+          .single();
+
+        if (profile?.plan_tier) {
+          const t = String(profile.plan_tier);
+          const resolved: TierInfo =
+            t === "Premium"
+              ? { name: "Premium", limit: 100 }
+              : t === "Pro"
+              ? { name: "Pro", limit: 50 }
+              : { name: "beta", limit: 25 };
+          setTier(resolved);
+        }
+      } catch (_) {
+        // ignore; we’ll keep defaults
+      }
+
+      // --- figure out how many requests this user has made this calendar month
+      try {
+        const start = new Date();
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + 1);
+
+        // Count parent rows for this user in current month
+        const { count } = await supabase
+          .from("requests")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", id)
+          .gte("created_at", start.toISOString())
+          .lt("created_at", end.toISOString());
+
+        setUsedThisMonth(count ?? 0);
+      } catch (_) {
+        // keep 0 if count fails; submission will still work
+      }
     })();
-    if (typeof window !== "undefined") setPageUrl(window.location.href);
   }, [router]);
+
+  const remaining = useMemo(
+    () => Math.max(0, (tier?.limit ?? 25) - (usedThisMonth ?? 0)),
+    [tier, usedThisMonth]
+  );
 
   const addProperty = () =>
     setPropsList((arr) => [...arr, { address: "", city: "", state: "", url: "" }]);
+
   const removeProperty = (idx: number) =>
     setPropsList((arr) => (arr.length > 1 ? arr.filter((_, i) => i !== idx) : arr));
+
   const updateProp = (idx: number, field: keyof PropItem, value: string) =>
     setPropsList((arr) => {
       const copy = [...arr];
@@ -83,42 +118,51 @@ useEffect(() => {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
     if (!userId) return setStatus("You must be logged in.");
     if (!email || !validEmail(email)) return setStatus("Please enter a valid email.");
     if (!propsList.some((p) => p.address || p.url))
       return setStatus("Please add at least one property (address or URL).");
+
+    if (remaining <= 0) {
+      return setStatus(
+        `You’ve reached your ${tier.limit} request limit for ${tier.name}. Upgrade to increase your allowance.`
+      );
+    }
+
     if (!supabase) return setStatus("Supabase client unavailable. Please log in again.");
 
     setSubmitting(true);
     setStatus("Submitting…");
 
     try {
-      // 1) parent request
+      // 1) create parent request (include user_id for quotas)
       const { data: reqRow, error: reqErr } = await supabase
         .from("requests")
-        .insert({ email, notes })
+        .insert({ user_id: userId, email, notes })
         .select("id")
         .single();
       if (reqErr) throw reqErr;
       const requestId = reqRow.id as string;
 
-      // 2) property items
+      // 2) create child items
       const items = propsList
-        .filter((p) => p.address || p.city || p.state || p.url)
         .map((p) => ({
           request_id: requestId,
           property_address: p.address || null,
           city: p.city || null,
           state: p.state || null,
           property_url: p.url || null,
-        }));
+        }))
+        // store rows only when at least one field present
+        .filter((row) => row.property_address || row.city || row.state || row.property_url);
 
       if (items.length) {
         const { error: itemsErr } = await supabase.from("request_items").insert(items);
         if (itemsErr) throw itemsErr;
       }
 
-      // 3) webhook (non-blocking)
+      // 3) fire GHL webhook through your API route (non-blocking)
       try {
         const r = await fetch("/api/ghl", {
           method: "POST",
@@ -138,10 +182,10 @@ useEffect(() => {
       }
 
       setStatus("Request sent! Redirecting…");
-      setTimeout(() => router.push("/dashboard"), 1000);
+      setTimeout(() => router.push("/dashboard"), 900);
     } catch (err: any) {
       console.error("Submit error:", err);
-      setStatus("Error: " + (err.message ?? String(err)));
+      setStatus("Error: " + (err?.message ?? String(err)));
     } finally {
       setSubmitting(false);
     }
@@ -155,6 +199,10 @@ useEffect(() => {
           <p className="lead" style={{ marginTop: 6 }}>
             Add one or more properties you’d like us to verify. We’ll confirm licensing, HOA rules,
             and local compliance.
+          </p>
+          <p className="text-sm" style={{ color: "#9aa5b1", marginTop: 6 }}>
+            Plan: <b>{tier.name}</b> • Used this month: <b>{usedThisMonth}</b> • Remaining:{" "}
+            <b>{remaining}</b>
           </p>
         </header>
 
