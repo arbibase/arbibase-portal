@@ -5,14 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Lock, ChevronDown } from "lucide-react";
 
-/**
- * SearchBar — Quick + Advanced (gated)
- * - Reads profiles.tier (beta|pro|premium) from Supabase
- * - Quick search is open to all tiers
- * - Advanced filters are gated to Pro+
- * - Submits URLSearchParams to /properties for list/map to consume
- */
-
 type Tier = "beta" | "pro" | "premium";
 type TabKey = "quick" | "advanced";
 
@@ -28,73 +20,68 @@ type AdvancedForm = QuickForm & {
   lease?: "12" | "24" | "36";
   beds?: "Studio" | "1+" | "2+" | "3+" | "4+";
   baths?: "1+" | "2+" | "3+";
-  furnishing?: "Furnished" | "Unfurnished";
+  furnished?: "Furnished" | "Unfurnished";
   parking?: "On-site" | "Street" | "Garage" | "None";
   utilities?: "Included" | "Not Included";
   hoa?: "Allows STR" | "Allows MTR" | "Restrictions present";
 };
 
-export type SearchState = {
-  q?: string;
-
-  // Quick
-  min?: number | null;
-  max?: number | null;
-
-  // Advanced (Pro+)
-  type?: "Apartment" | "House" | "Townhome" | "Condo" | "Duplex" | "";
-  approval?: "STR" | "MTR" | "Either" | "";
-  lease?: "12 months" | "24 months" | "36 months" | "";
-  beds?: "Studio" | "1+" | "2+" | "3+" | "4+" | "";
-  baths?: "1+" | "2+" | "3+" | "";
-  furnishing?: "Furnished" | "Unfurnished" | "";
-  parking?: "On-site" | "Street" | "Garage" | "None" | "";
-  utilities?: "Included" | "Not Included" | "";
-  hoa?: "Allows STR" | "Allows MTR" | "Restrictions present" | "";
-
-  // misc
-  city?: string;
-  state?: string;
-};
-
 export default function SearchBar() {
-  // ---------------- Tier (gate Advanced) ----------------
-  const [tier, setTier] = useState<Tier>("beta");
-  const proPlus = tier === "pro" || tier === "premium";
-
   const router = useRouter();
   const params = useSearchParams();
+
+  /* ---------------- Tier (gate Advanced) ---------------- */
+  const [tier, setTier] = useState<Tier>("beta");
+  const proPlus = tier === "pro" || tier === "premium";
 
   useEffect(() => {
     (async () => {
       try {
+        // URL test override: ?forceTier=premium | pro | beta
+        const forced = (params?.get("forceTier") || "").toLowerCase();
+        if (forced === "pro" || forced === "premium" || forced === "beta") {
+          setTier(forced as Tier);
+          return;
+        }
+
         if (!supabase) return;
-        const { data } = await supabase.auth.getUser();
-        const uid = data?.user?.id;
-        if (!uid) return;
 
-        // Expecting profiles(id, tier)
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("tier")
-          .eq("id", uid)
-          .maybeSingle();
+        const { data: auth } = await supabase.auth.getUser();
+        const uid = auth?.user?.id;
 
-        const t = (prof?.tier as Tier) || "beta";
-        setTier(t);
+        // fallback to user metadata if profiles row missing / not joined yet
+        const metaTier = (auth?.user?.user_metadata as any)?.tier;
+
+        let t = "beta";
+        if (uid) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("tier")
+            .eq("id", uid)
+            .maybeSingle();
+
+          const raw = (prof?.tier ?? metaTier ?? "").toString().trim().toLowerCase();
+          if (raw === "pro" || raw === "premium" || raw === "beta") t = raw;
+        } else if (metaTier) {
+          const raw = metaTier.toString().trim().toLowerCase();
+          if (raw === "pro" || raw === "premium" || raw === "beta") t = raw;
+        }
+
+        setTier(t as Tier);
       } catch {
         setTier("beta");
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------------- Tabs ----------------
+  /* ---------------- Tabs ---------------- */
   const [tab, setTab] = useState<TabKey>("quick");
   useEffect(() => {
     if (!proPlus && tab === "advanced") setTab("quick");
   }, [proPlus, tab]);
 
-  // ---------------- Forms ----------------
+  /* ---------------- Forms ---------------- */
   const [quick, setQuick] = useState<QuickForm>({
     q: params?.get("q") ?? "",
     min: params?.get("min") ?? "",
@@ -110,7 +97,7 @@ export default function SearchBar() {
     lease: (params?.get("lease") as AdvancedForm["lease"]) || undefined,
     beds: (params?.get("beds") as AdvancedForm["beds"]) || undefined,
     baths: (params?.get("baths") as AdvancedForm["baths"]) || undefined,
-    furnishing: (params?.get("furnishing") as AdvancedForm["furnishing"]) || undefined,
+    furnished: (params?.get("furnished") as AdvancedForm["furnished"]) || undefined,
     parking: (params?.get("parking") as AdvancedForm["parking"]) || undefined,
     utilities: (params?.get("utilities") as AdvancedForm["utilities"]) || undefined,
     hoa: (params?.get("hoa") as AdvancedForm["hoa"]) || undefined,
@@ -121,7 +108,7 @@ export default function SearchBar() {
     [tab]
   );
 
-  // ---------------- Helpers ----------------
+  /* ---------------- Helpers ---------------- */
   function toParams(data: Record<string, any>) {
     const u = new URLSearchParams();
     Object.entries(data).forEach(([k, v]) => {
@@ -132,7 +119,7 @@ export default function SearchBar() {
     return u.toString();
   }
 
-  // ---------------- Submit ----------------
+  /* ---------------- Submit ---------------- */
   function submitQuick(e: React.FormEvent) {
     e.preventDefault();
     const q = toParams({ q: quick.q, min: quick.min, max: quick.max, scope: "quick" });
@@ -146,15 +133,19 @@ export default function SearchBar() {
     router.push(`/properties?${q}`);
   }
 
-  // quick chips
   function setCityChip(label: string) {
     setQuick((f) => ({ ...f, q: label }));
     setAdv((f) => ({ ...f, q: label }));
   }
 
-  // ---------------- UI ----------------
+  /* ---------------- UI ---------------- */
   return (
-    <div className="reveal glow rounded-[18px] border border-[#1e2733] bg-[rgba(14,20,28,.92)] p-4 shadow-[0_10px_26px_rgba(0,0,0,.4)]">
+    <div
+      className="
+        reveal glow rounded-[18px] border border-[#1e2733]
+        bg-[rgba(14,20,28,.92)] p-4 shadow-[0_10px_26px_rgba(0,0,0,.40)]
+      "
+    >
       {/* Tabs */}
       <div className="mb-3 flex items-center gap-2" role="tablist" aria-label="Search Mode">
         <button
@@ -162,11 +153,18 @@ export default function SearchBar() {
           role="tab"
           aria-selected={tab === "quick"}
           onClick={() => setTab("quick")}
-          className={`flex-1 min-w-[180px] rounded-[14px] border px-4 py-3 font-extrabold transition ${
+          className={`
+            flex-1 min-w-[180px] rounded-[14px] border px-4 py-3 font-extrabold transition
+            ${tab === "quick"
+              ? "border-[#0a6a85] text-[#041018] shadow-[0_10px_26px_rgba(0,225,255,.22)]"
+              : "border-[#1e2733] bg-[#0f141c] text-[#ddecff] hover:-translate-y-[1px]"
+            }
+          `}
+          style={
             tab === "quick"
-              ? "border-[#0a6a85] bg-[linear-gradient(135deg,var(--brand),var(--brand-2))] text-[#041018] shadow-[0_10px_26px_rgba(0,225,255,.22)]"
-              : "border-[#1e2733] bg-[#0f141c] text-[#ddecff] hover:translate-y-[-1px]"
-          }`}
+              ? { background: "linear-gradient(135deg,var(--brand-primary),var(--brand-accent))" }
+              : undefined
+          }
         >
           🔎 Quick Search
         </button>
@@ -176,11 +174,18 @@ export default function SearchBar() {
           role="tab"
           aria-selected={tab === "advanced"}
           onClick={() => setTab(proPlus ? "advanced" : "quick")}
-          className={`flex-1 min-w-[180px] rounded-[14px] border px-4 py-3 font-extrabold transition relative ${
+          className={`
+            relative flex-1 min-w-[180px] rounded-[14px] border px-4 py-3 font-extrabold transition
+            ${tab === "advanced"
+              ? "border-[#0a6a85] text-[#041018] shadow-[0_10px_26px_rgba(0,225,255,.22)]"
+              : "border-[#1e2733] bg-[#0f141c] text-[#ddecff] hover:-translate-y-[1px]"
+            }
+          `}
+          style={
             tab === "advanced"
-              ? "border-[#0a6a85] bg-[linear-gradient(135deg,var(--brand),var(--brand-2))] text-[#041018] shadow-[0_10px_26px_rgba(0,225,255,.22)]"
-              : "border-[#1e2733] bg-[#0f141c] text-[#ddecff] hover:translate-y-[-1px]"
-          }`}
+              ? { background: "linear-gradient(135deg,var(--brand-primary),var(--brand-accent))" }
+              : undefined
+          }
         >
           🧭 Advanced Filters
           {!proPlus && (
@@ -296,8 +301,8 @@ export default function SearchBar() {
           />
           <Select
             label="Furnishing"
-            value={adv.furnishing}
-            onChange={(v) => setAdv((f) => ({ ...f, furnishing: v as any }))}
+            value={adv.furnished}
+            onChange={(v) => setAdv((f) => ({ ...f, furnished: v as any }))}
             options={["Furnished", "Unfurnished"]}
             disabled={!proPlus}
           />
@@ -352,7 +357,7 @@ export default function SearchBar() {
       <div className="mt-3 grid place-items-center">
         <div className="flex flex-wrap justify-center gap-2">
           {["Miami, FL", "Austin, TX", "Nashville, TN", "Denver, CO"].map((c) => (
-            <Chip key={c} label={c} onClick={setCityChip} />
+            <Chip key={c} label={c} onClick={(label) => setCityChip(label)} />
           ))}
         </div>
       </div>
@@ -394,7 +399,7 @@ function Select({
   );
 }
 
-/* ---------- Small internal Chip ---------- */
+/* ---------- City Chip ---------- */
 function Chip({
   label,
   onClick,
