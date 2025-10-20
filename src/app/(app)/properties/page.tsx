@@ -1,12 +1,13 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import SearchBar from "@/components/ui/SearchBar";
 import PropertyCard, { Property } from "@/components/ui/PropertyCard";
 import MapPane from "@/components/ui/MapPane";
+import { LatLngBounds } from "leaflet";
 
-/** Demo seed with 5 items to force a 5-col grid */
+/** Demo seed with coordinates */
 const DEMO: (Property & { lat?: number; lng?: number })[] = [
   { id: "1", city: "Miami",     state: "FL", rent: 3800, beds: 2, baths: 2, approval: "STR",    lat: 25.7617, lng: -80.1918 },
   { id: "2", city: "Austin",    state: "TX", rent: 2200, beds: 1, baths: 1, approval: "Either", lat: 30.2672, lng: -97.7431 },
@@ -26,8 +27,8 @@ export default function PropertiesPage() {
 function PropertiesView() {
   const params = useSearchParams();
   const [mode, setMode] = useState<"gallery" | "map">("gallery");
+  const [mapBounds, setMapBounds] = useState<LatLngBounds | null>(null); // 🧭 store map bounds
 
-  // Parse URL params from SearchBar
   const s = useMemo(() => {
     const q = (params?.get("q") || "").trim().toLowerCase();
     const min = Number(params?.get("min") || "");
@@ -51,6 +52,18 @@ function PropertiesView() {
     });
   }, [s]);
 
+  // 🧭 Filter based on map bounds
+  const visibleList = useMemo(() => {
+    if (!mapBounds) return list;
+    return list.filter((p) =>
+      p.lat && p.lng ? mapBounds.contains([p.lat, p.lng]) : true
+    );
+  }, [list, mapBounds]);
+
+  const handleBoundsChange = useCallback((b: LatLngBounds) => {
+    setMapBounds(b);
+  }, []);
+
   return (
     <main className="container" style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -70,11 +83,10 @@ function PropertiesView() {
         </section>
       ) : (
         <>
-          {/* Map full width on top, cards below */}
-          <MapPane properties={list} height={420} />
+          <MapPane properties={list} onBoundsChange={handleBoundsChange} height={420} />
           <section className="grid" style={{ gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 16 }}>
-            {list.map((p) => <PropertyCard key={p.id} p={p} />)}
-            {list.length === 0 && <div className="fine col-span-5">No results.</div>}
+            {visibleList.map((p) => <PropertyCard key={p.id} p={p} />)}
+            {visibleList.length === 0 && <div className="fine col-span-5">No results in view.</div>}
           </section>
         </>
       )}
