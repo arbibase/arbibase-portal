@@ -1,0 +1,10 @@
+:root{
+  --bg:#0b0f15; --bg-2:#0e131b;
+  --ink:#ffffff; --muted:#cfe1f2; --line:#1e2733;
+  --surface:#0e141c; --surfaceA:rgba(14,20,28,.92);
+  --brand:#06b6d4; --brand-2:#3b82f6; --accent:#00e1ff;
+  --rad-xl:22px; --rad-lg:16px; --rad-md:12px;
+  --shadow-1:0 10px 26px rgba(0,0,0,.40);
+  --shadow-2:0 24px 60px rgba(0,0,0,.48);
+  --max:1180px;
+}
