@@ -1,8 +1,12 @@
 {
+  "version": 2,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/$1" }
+  ],
   "crons": [
     {
-      "path": "/api/integrations/sheets/pull?secret=${SHEETS_PULL_SECRET}",
-      "schedule": "0 */24 * * *"
+      "path": "/api/integrations/sheets/pull",
+      "schedule": "0 8 * * *"
     }
   ]
 }
