@@ -7,8 +7,10 @@ import { Lock, ChevronDown } from "lucide-react";
 
 /**
  * SearchBar — Quick + Advanced (gated)
- * Reads profiles.tier from Supabase (beta|pro|premium) and gates advanced filters for Pro+.
- * Submits to /properties with URLSearchParams for your list/map view to consume.
+ * - Reads profiles.tier (beta|pro|premium) from Supabase
+ * - Quick search is open to all tiers
+ * - Advanced filters are gated to Pro+
+ * - Submits URLSearchParams to /properties for list/map to consume
  */
 
 type Tier = "beta" | "pro" | "premium";
@@ -26,7 +28,7 @@ type AdvancedForm = QuickForm & {
   lease?: "12" | "24" | "36";
   beds?: "Studio" | "1+" | "2+" | "3+" | "4+";
   baths?: "1+" | "2+" | "3+";
-  furnished?: "Furnished" | "Unfurnished";
+  furnishing?: "Furnished" | "Unfurnished";
   parking?: "On-site" | "Street" | "Garage" | "None";
   utilities?: "Included" | "Not Included";
   hoa?: "Allows STR" | "Allows MTR" | "Restrictions present";
@@ -42,7 +44,6 @@ export type SearchState = {
   // Advanced (Pro+)
   type?: "Apartment" | "House" | "Townhome" | "Condo" | "Duplex" | "";
   approval?: "STR" | "MTR" | "Either" | "";
-
   lease?: "12 months" | "24 months" | "36 months" | "";
   beds?: "Studio" | "1+" | "2+" | "3+" | "4+" | "";
   baths?: "1+" | "2+" | "3+" | "";
@@ -56,14 +57,11 @@ export type SearchState = {
   state?: string;
 };
 
-
-export default function Searchbar() {
-
+export default function SearchBar() {
   // ---------------- Tier (gate Advanced) ----------------
   const [tier, setTier] = useState<Tier>("beta");
   const proPlus = tier === "pro" || tier === "premium";
 
-  // Next navigation hooks needed by this component
   const router = useRouter();
   const params = useSearchParams();
 
@@ -75,7 +73,7 @@ export default function Searchbar() {
         const uid = data?.user?.id;
         if (!uid) return;
 
-        // Expecting a `profiles` table with `tier` column (beta|pro|premium)
+        // Expecting profiles(id, tier)
         const { data: prof } = await supabase
           .from("profiles")
           .select("tier")
@@ -93,7 +91,6 @@ export default function Searchbar() {
   // ---------------- Tabs ----------------
   const [tab, setTab] = useState<TabKey>("quick");
   useEffect(() => {
-    // if user isn’t pro+, keep them on quick when switching back to the page
     if (!proPlus && tab === "advanced") setTab("quick");
   }, [proPlus, tab]);
 
@@ -113,7 +110,7 @@ export default function Searchbar() {
     lease: (params?.get("lease") as AdvancedForm["lease"]) || undefined,
     beds: (params?.get("beds") as AdvancedForm["beds"]) || undefined,
     baths: (params?.get("baths") as AdvancedForm["baths"]) || undefined,
-    furnished: (params?.get("furnished") as AdvancedForm["furnished"]) || undefined,
+    furnishing: (params?.get("furnishing") as AdvancedForm["furnishing"]) || undefined,
     parking: (params?.get("parking") as AdvancedForm["parking"]) || undefined,
     utilities: (params?.get("utilities") as AdvancedForm["utilities"]) || undefined,
     hoa: (params?.get("hoa") as AdvancedForm["hoa"]) || undefined,
@@ -124,7 +121,7 @@ export default function Searchbar() {
     [tab]
   );
 
-  // ---------------- Handlers ----------------
+  // ---------------- Helpers ----------------
   function toParams(data: Record<string, any>) {
     const u = new URLSearchParams();
     Object.entries(data).forEach(([k, v]) => {
@@ -135,6 +132,7 @@ export default function Searchbar() {
     return u.toString();
   }
 
+  // ---------------- Submit ----------------
   function submitQuick(e: React.FormEvent) {
     e.preventDefault();
     const q = toParams({ q: quick.q, min: quick.min, max: quick.max, scope: "quick" });
@@ -148,18 +146,11 @@ export default function Searchbar() {
     router.push(`/properties?${q}`);
   }
 
+  // quick chips
   function setCityChip(label: string) {
     setQuick((f) => ({ ...f, q: label }));
     setAdv((f) => ({ ...f, q: label }));
   }
-  
-const toQueryParams = (s: Partial<SearchState>) => {
-  const p = new URLSearchParams();
-  Object.entries(s).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && String(v).trim() !== "") p.set(k, String(v));
-  });
-  return p;
-};
 
   // ---------------- UI ----------------
   return (
@@ -305,8 +296,8 @@ const toQueryParams = (s: Partial<SearchState>) => {
           />
           <Select
             label="Furnishing"
-            value={adv.furnished}
-            onChange={(v) => setAdv((f) => ({ ...f, furnished: v as any }))}
+            value={adv.furnishing}
+            onChange={(v) => setAdv((f) => ({ ...f, furnishing: v as any }))}
             options={["Furnished", "Unfurnished"]}
             disabled={!proPlus}
           />
@@ -403,7 +394,7 @@ function Select({
   );
 }
 
-/* ---------- Small internal Chip (used for city quick-picks) ---------- */
+/* ---------- Small internal Chip ---------- */
 function Chip({
   label,
   onClick,
