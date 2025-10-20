@@ -32,32 +32,40 @@ type AdvancedForm = QuickForm & {
   hoa?: "Allows STR" | "Allows MTR" | "Restrictions present";
 };
 
-function Chip({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: (label: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onClick(label)}
-      className="inline-flex items-center gap-1 rounded-full border border-[#203346] bg-[#0f1824] px-3 py-1 text-sm text-[#bdeaff] shadow-[inset_0_0_18px_rgba(0,225,255,.07)] hover:translate-y-[-1px] transition"
-      title={`Search ${label}`}
-    >
-      <span>📍</span> {label}
-    </button>
-  );
-}
+export type SearchState = {
+  q?: string;
 
-export default function SearchBar() {
-  const router = useRouter();
-  const params = useSearchParams();
+  // Quick
+  min?: number | null;
+  max?: number | null;
+
+  // Advanced (Pro+)
+  type?: "Apartment" | "House" | "Townhome" | "Condo" | "Duplex" | "";
+  approval?: "STR" | "MTR" | "Either" | "";
+
+  lease?: "12 months" | "24 months" | "36 months" | "";
+  beds?: "Studio" | "1+" | "2+" | "3+" | "4+" | "";
+  baths?: "1+" | "2+" | "3+" | "";
+  furnishing?: "Furnished" | "Unfurnished" | "";
+  parking?: "On-site" | "Street" | "Garage" | "None" | "";
+  utilities?: "Included" | "Not Included" | "";
+  hoa?: "Allows STR" | "Allows MTR" | "Restrictions present" | "";
+
+  // misc
+  city?: string;
+  state?: string;
+};
+
+
+export default function Searchbar() {
 
   // ---------------- Tier (gate Advanced) ----------------
   const [tier, setTier] = useState<Tier>("beta");
   const proPlus = tier === "pro" || tier === "premium";
+
+  // Next navigation hooks needed by this component
+  const router = useRouter();
+  const params = useSearchParams();
 
   useEffect(() => {
     (async () => {
@@ -144,6 +152,14 @@ export default function SearchBar() {
     setQuick((f) => ({ ...f, q: label }));
     setAdv((f) => ({ ...f, q: label }));
   }
+  
+const toQueryParams = (s: Partial<SearchState>) => {
+  const p = new URLSearchParams();
+  Object.entries(s).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && String(v).trim() !== "") p.set(k, String(v));
+  });
+  return p;
+};
 
   // ---------------- UI ----------------
   return (
@@ -384,5 +400,24 @@ function Select({
       </select>
       <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70" />
     </label>
+  );
+}
+
+/* ---------- Small internal Chip (used for city quick-picks) ---------- */
+function Chip({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: (label: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(label)}
+      className="inline-flex items-center gap-2 rounded-full border border-[#203142] bg-[#0f1824] px-3 py-1 text-sm font-extrabold text-[#bdeaff] hover:opacity-90"
+    >
+      {label}
+    </button>
   );
 }
