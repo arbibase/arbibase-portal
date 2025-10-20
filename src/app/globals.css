@@ -48,3 +48,7 @@ img{max-width:100%;display:block}
 @media (min-width: 1280px){
   .card-grid-5{ grid-template-columns:repeat(5, minmax(0, 1fr)); }
 }
+
+/* Leaflet map CSS */
+.leaflet-container { height: 100%; width: 100%; }
+@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
