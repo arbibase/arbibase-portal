@@ -32,3 +32,19 @@ img{max-width:100%;display:block}
 .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border-radius:999px;font-size:.86rem;
   font-weight:800;background:#0f1824;border:1px solid #203142;color:#bdeaff}
 .hr{height:1px;background:var(--line);margin:12px 0}
+
+/* 5-col responsive gallery for property cards */
+.card-grid-5{
+  display:grid;
+  gap:16px;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 820px){
+  .card-grid-5{ grid-template-columns:repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1080px){
+  .card-grid-5{ grid-template-columns:repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1280px){
+  .card-grid-5{ grid-template-columns:repeat(5, minmax(0, 1fr)); }
+}
