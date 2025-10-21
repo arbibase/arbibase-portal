@@ -1,51 +1,114 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { Suspense, useMemo, useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import SearchBar from "@/components/ui/SearchBar";
 import PropertyCard, { Property } from "@/components/ui/PropertyCard";
 import MapPane from "@/components/ui/MapPane";
+import { DEMO_PROPERTIES } from "@/lib/properties-demo";
 
-type Bounds = { north: number; south: number; east: number; west: number };
-
-type MapPropertyPin = {
-  id: string;
-  title?: string;
-  position: { lat: number; lng: number };
-};
-
-/** Demo seed (added Tampa to keep 5 cards) */
-const DEMO: Property[] = [
-  { id: "1", city: "Miami",     state: "FL", rent: 3800, beds: 2, baths: 2, approval: "STR" },
-  { id: "2", city: "Austin",    state: "TX", rent: 2200, beds: 1, baths: 1, approval: "Either" },
-  { id: "3", city: "Nashville", state: "TN", rent: 1900, beds: 3, baths: 2, approval: "MTR" },
-  { id: "4", city: "Denver",    state: "CO", rent: 2450, beds: 2, baths: 1, approval: "MTR" },
-  { id: "5", city: "Tampa",     state: "FL", rent: 2100, beds: 1, baths: 1, approval: "STR" },
+/** Demo seed — five example listings with exact coordinates */
+const DEMO: (Property & {
+  address: string;
+  lat: number;
+  lng: number;
+  photos?: string[];
+})[] = [
+  {
+    id: "1",
+    city: "Miami",
+    state: "FL",
+    address: "1100 West Ave, Miami Beach, FL",
+    rent: 3800,
+    beds: 2,
+    baths: 2,
+    approval: "STR",
+    lat: 25.7847,
+    lng: -80.1417,
+    photos: [],
+  },
+  {
+    id: "2",
+    city: "Austin",
+    state: "TX",
+    address: "301 W 2nd St, Austin, TX",
+    rent: 2200,
+    beds: 1,
+    baths: 1,
+    approval: "Either",
+    lat: 30.2640,
+    lng: -97.7455,
+    photos: [],
+  },
+  {
+    id: "3",
+    city: "Nashville",
+    state: "TN",
+    address: "515 Church St, Nashville, TN",
+    rent: 1900,
+    beds: 3,
+    baths: 2,
+    approval: "MTR",
+    lat: 36.1649,
+    lng: -86.7817,
+    photos: [],
+  },
+  {
+    id: "4",
+    city: "Denver",
+    state: "CO",
+    address: "1701 Wynkoop St, Denver, CO",
+    rent: 2450,
+    beds: 2,
+    baths: 1,
+    approval: "MTR",
+    lat: 39.7527,
+    lng: -105.0006,
+    photos: [],
+  },
+  {
+    id: "5",
+    city: "Tampa",
+    state: "FL",
+    address: "401 Channelside Walk Way, Tampa, FL",
+    rent: 2100,
+    beds: 1,
+    baths: 1,
+    approval: "STR",
+    lat: 27.9411,
+    lng: -82.4476,
+    photos: [],
+  },
 ];
 
-/** crude city → lat/lng (replace with real geocode later) */
-const CITY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
-  "Miami, FL": { lat: 25.7617, lng: -80.1918 },
-  "Austin, TX": { lat: 30.2672, lng: -97.7431 },
-  "Nashville, TN": { lat: 36.1627, lng: -86.7816 },
-  "Denver, CO": { lat: 39.7392, lng: -104.9903 },
-  "Tampa, FL": { lat: 27.9506, lng: -82.4572 },
+// crude city → lat/lng for demo pins
+type Bounds = {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+};
+
+type MapPin = {
+  id: string;
+  position: { lat: number; lng: number };
+  title: string;
 };
 
 export default function Page() {
   return (
     <Suspense fallback={<div className="container p-4 fine">Loading properties…</div>}>
-      <PropertiesView />
+      <View />
     </Suspense>
   );
 }
 
-function PropertiesView() {
+function View() {
   const params = useSearchParams();
-  const [bounds, setBounds] = useState<Bounds | null>(null);
+  const router = useRouter();
 
-  // URL params from SearchBar
-  const s = useMemo(() => {
+  // read URL params from SearchBar
+  const filters = useMemo(() => {
     const q = (params?.get("q") || "").trim().toLowerCase();
     const min = Number(params?.get("min") || "");
     const max = Number(params?.get("max") || "");
@@ -58,38 +121,49 @@ function PropertiesView() {
     };
   }, [params]);
 
-  // Base filter (query/rent/approval)
-  const base = useMemo(() => {
+  // base filter
+  const filtered = useMemo(() => {
     return DEMO.filter((p) => {
-      if (s.q && !`${p.city} ${p.state}`.toLowerCase().includes(s.q)) return false;
-      if (s.approval && s.approval !== "Either" && s.approval !== p.approval) return false;
-      if (s.min !== undefined && p.rent < s.min) return false;
-      if (s.max !== undefined && p.rent > s.max) return false;
+      if (filters.q && !`${p.city} ${p.state}`.toLowerCase().includes(filters.q)) return false;
+      if (filters.approval && filters.approval !== "Either" && p.approval !== filters.approval) return false;
+      if (typeof filters.min === "number" && p.rent < filters.min) return false;
+      if (typeof filters.max === "number" && p.rent > filters.max) return false;
       return true;
     });
-  }, [s]);
+  }, [filters]);
 
-  // Filter by current map bounds
-  const visible = useMemo(() => {
-    if (!bounds) return base;
-    return base.filter((p) => {
-      const c = CITY_CENTROIDS[`${p.city}, ${p.state}`];
-      if (!c) return true;
-      return c.lat <= bounds.north && c.lat >= bounds.south && c.lng <= bounds.east && c.lng >= bounds.west;
-    });
-  }, [base, bounds]);
+const [bounds, setBounds] = useState<Bounds | null>(null);
 
-  // Map pins for the current list
-  const pins: MapPropertyPin[] = useMemo(
-    () =>
-      base
-        .map((p) => {
-          const c = CITY_CENTROIDS[`${p.city}, ${p.state}`];
-          if (!c) return null;
-          return { id: p.id, title: `${p.city}, ${p.state} — $${p.rent}`, position: c };
-        })
-        .filter(Boolean) as MapPropertyPin[],
-    [base]
+const visible = useMemo(() => {
+  if (!bounds) return filtered;
+  return filtered.filter((p) => {
+    const lat = (p as any).lat;
+    const lng = (p as any).lng;
+    if (lat == null || lng == null) return false;
+    return lat <= bounds.north && lat >= bounds.south && lng <= bounds.east && lng >= bounds.west;
+  });
+}, [filtered, bounds]);
+
+const pins = useMemo(() => {
+  return filtered
+    .map((p) => {
+      const lat = (p as any).lat;
+      const lng = (p as any).lng;
+      if (lat == null || lng == null) return null;
+      const price = `$${p.rent.toLocaleString()}`;
+      return {
+        id: p.id,
+        position: { lat, lng },
+        title: `${p.city}, ${p.state} — ${price}`,
+      } as MapPin;
+    })
+    .filter(Boolean) as MapPin[];
+}, [filtered]);
+
+
+  const handleMarkerClick = useCallback(
+    (id: string) => router.push(`/properties/${id}`),
+    [router]
   );
 
   return (
@@ -98,31 +172,43 @@ function PropertiesView() {
         <h2 style={{ margin: 0 }}>Browse Properties</h2>
       </div>
 
-      {/* URL-driven search bar */}
+      {/* SearchBar (URL-driven; Pro gates are inside the component) */}
       <SearchBar />
 
-      {/* Map first, full width */}
-      <section className="rounded-2xl overflow-hidden border border-[#1e2733] bg-[#0b121a]">
-        <div style={{ height: 420 }}>
-          <MapPane
-            initialCenter={{ lat: 37.5, lng: -96 }}
-            initialZoom={4}
-            markers={pins}
-            onBoundsChange={setBounds}
-            height={420}
-          />
-        </div>
-      </section>
-
-      {/* 5-column gallery below the map */}
+      {/* Zillow-style two-pane layout */}
       <section
-        className="grid"
-        style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 16 }}
+        className="grid rounded-2xl border border-[#1e2733] bg-[#0b121a]"
+        style={{
+          gridTemplateColumns: "minmax(420px, 1.1fr) 1fr",
+          gap: 0,
+          overflow: "hidden",
+        }}
       >
-        {visible.map((p) => (
-          <PropertyCard key={p.id} p={p} />
-        ))}
-        {visible.length === 0 && <div className="fine col-span-5">No results in view.</div>}
+        {/* Map on the left */}
+        <div style={{ height: 560, minWidth: 420 }}>
+          {React.createElement((MapPane as any), {
+            initialCenter: { lat: 37.5, lng: -96 }, // USA
+            initialZoom: 4,
+            pins,
+            onIdleBounds: setBounds,
+            onMarkerClick: handleMarkerClick,
+          })}
+        </div>
+
+        {/* List on the right */}
+        <div className="p-4">
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}
+          >
+            {visible.map((p) => (
+              <PropertyCard key={p.id} p={p} />
+            ))}
+          </div>
+          {visible.length === 0 && (
+            <div className="fine mt-4">No results in view.</div>
+          )}
+        </div>
       </section>
     </main>
   );

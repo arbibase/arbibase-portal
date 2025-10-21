@@ -80,3 +80,6 @@ input[type="text"], input[type="number"], select {
   height: 40px;
   padding: 0 14px;
 }
+
+/* Map + List container clarity */
+.container .fine { color:#a6b3c3; font-size: 0.95rem; }
