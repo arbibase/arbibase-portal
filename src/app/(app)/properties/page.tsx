@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import nextDynamic from "next/dynamic";
 import SearchBar from "@/components/ui/SearchBar";
@@ -12,7 +12,7 @@ const MapPane = nextDynamic(() => import("@/components/ui/MapPane"), { ssr: fals
 type Bounds = { north:number; south:number; east:number; west:number; };
 type Result = typeof DEMO_PROPERTIES[number];
 
-export default function PropertiesPage() {
+function PropertiesContent() {
   const params = useSearchParams() ?? new URLSearchParams();
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [results, setResults] = useState<Result[]>(DEMO_PROPERTIES);
@@ -89,4 +89,13 @@ export default function PropertiesPage() {
     </main>
   );
 }
+
+export default function PropertiesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PropertiesContent />
+    </Suspense>
+  );
+}
+
 export const dynamic = "force-dynamic";
