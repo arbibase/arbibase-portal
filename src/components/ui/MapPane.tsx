@@ -1,145 +1,136 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   GoogleMap,
-  MarkerF,
-  MarkerClustererF,
-  LoadScript,
+  Marker,
+  MarkerClustererF, // TS-friendly clusterer (v2+)
+  useJsApiLoader,
 } from "@react-google-maps/api";
 
-type LatLng = { lat: number; lng: number };
-export type MapMarker = {
+export type LatLng = { lat: number; lng: number };
+export type Bounds = { north: number; south: number; east: number; west: number };
+
+export type GMapMarker = {
   id: string;
   position: LatLng;
   title?: string;
-  rent?: number;
 };
 
-const CONTAINER_STYLE = { width: "100%", height: "520px", borderRadius: "16px" };
-
-/** IMPORTANT: keep libraries stable (prevents the LoadScript warning) */
-const LIBRARIES: ("places")[] = ["places"];
-
-/** A subtle dark style – readable on your UI */
-const MAP_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#0b121a" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#bdeaff" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#0b121a" }] },
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1e2a38" }] },
-  { featureType: "water", stylers: [{ color: "#0e1a26" }] },
-];
+/** Keep libraries stable to avoid the "LoadScript reloaded" warning */
+const GMAPS_LIBS = ["places"] as const;
 
 export default function MapPane({
-  markers,
+  initialCenter = { lat: 39.5, lng: -98.35 }, // US centroid
+  initialZoom = 4,
+  markers = [],
   onBoundsChange,
-  defaultCenter = { lat: 27.5, lng: -97.0 }, // Gulf-ish US center
-  defaultZoom = 5,
+  height = 520,
 }: {
-  markers: MapMarker[];
-  onBoundsChange?: (b: google.maps.LatLngBoundsLiteral) => void;
-  defaultCenter?: LatLng;
-  defaultZoom?: number;
+  initialCenter?: LatLng;
+  initialZoom?: number;
+  markers?: GMapMarker[];
+  onBoundsChange?: (b: Bounds) => void;
+  height?: number;
 }) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!;
+  const { isLoaded } = useJsApiLoader({
+    id: "arbibase-gmaps",
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    libraries: GMAPS_LIBS as unknown as undefined, // satisfies type
+  });
+
   const mapRef = useRef<google.maps.Map | null>(null);
-  const [apiOk, setApiOk] = useState(true);
 
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
-  }, []);
+    // Set initial view once; we don't pass center/zoom props so the user can pan/zoom freely
+    map.setCenter(initialCenter);
+    map.setZoom(initialZoom);
+  }, [initialCenter, initialZoom]);
 
   const onUnmount = useCallback(() => {
     mapRef.current = null;
   }, []);
 
-  const handleIdle = useCallback(() => {
+  const emitBounds = useCallback(() => {
     const m = mapRef.current;
     if (!m) return;
     const b = m.getBounds();
     if (!b) return;
-    const l = b.toJSON();
-    onBoundsChange?.(l);
+    const ne = b.getNorthEast();
+    const sw = b.getSouthWest();
+    onBoundsChange?.({
+      north: ne.lat(),
+      south: sw.lat(),
+      east: ne.lng(),
+      west: sw.lng(),
+    });
   }, [onBoundsChange]);
 
   const options = useMemo<google.maps.MapOptions>(
     () => ({
-      disableDefaultUI: true,
-      styles: MAP_STYLE,
+      disableDefaultUI: false,
+      clickableIcons: true,
       gestureHandling: "greedy",
+      keyboardShortcuts: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      mapTypeControl: false,
+      zoomControl: true,
+      styles: [
+        { elementType: "geometry", stylers: [{ color: "#0b1118" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#b8c7d9" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#0b1118" }] },
+        { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "on" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#1a2430" }] },
+        { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#b8c7d9" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c1a24" }] },
+      ],
+      backgroundColor: "#0b1118",
     }),
     []
   );
 
-  if (!apiKey) {
+  if (!isLoaded) {
     return (
-      <div className="fine" style={{ padding: 12 }}>
-        Missing <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>.
+      <div
+        className="rounded-2xl border border-[#1f2a37] bg-[#0b1118] p-4 text-sm text-[#8fa6bd]"
+        style={{ height }}
+      >
+        Loading map…
       </div>
     );
   }
 
   return (
-    <LoadScript
-      googleMapsApiKey={apiKey}
-      libraries={LIBRARIES}
-      onError={() => setApiOk(false)}
-    >
-      {!apiOk ? (
-        <div
-          className="fine"
-          style={{
-            ...CONTAINER_STYLE,
-            display: "grid",
-            placeItems: "center",
-            background: "#0f141c",
-            border: "1px solid #1e2733",
+    <div className="rounded-2xl border border-[#1f2a37] bg-[#0b1118]" style={{ height }}>
+      <GoogleMap
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+        onIdle={emitBounds}
+        options={options}
+        mapContainerStyle={{ width: "100%", height: "100%", borderRadius: 16 }}
+      >
+        <MarkerClustererF
+          options={{
+            minimumClusterSize: 2,
+            // default clusterer style is fine; can be themed later
           }}
         >
-          Maps API failed to load. Check referrer allow-list and API key.
-        </div>
-      ) : (
-        <GoogleMap
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          onIdle={handleIdle}
-          mapContainerStyle={CONTAINER_STYLE}
-          options={options}
-          center={defaultCenter}
-          zoom={defaultZoom}
-        >
-          {/* Only render clusterer when we have valid positions */}
-          {markers?.length > 0 && (
-            <MarkerClustererF
-              options={{
-                minimumClusterSize: 2,
-                gridSize: 60,
-              }}
-            >
-              {(clusterer) =>
-                (
-                  <>
-                    {markers.map((m) =>
-                      m?.position
-                        ? (
-                            <MarkerF
-                              key={m.id}
-                              position={m.position}
-                              clusterer={clusterer}
-                              title={m.title}
-                            />
-                          )
-                        : null
-                    )}
-                  </>
-                )
-              }
-            </MarkerClustererF>
+          {(clusterer) => (
+            <>
+              {markers.map((m) => (
+                <Marker
+                  key={m.id}
+                  position={m.position}
+                  clusterer={clusterer}
+                  title={m.title}
+                />
+              ))}
+            </>
           )}
-        </GoogleMap>
-      )}
-    </LoadScript>
+        </MarkerClustererF>
+      </GoogleMap>
+    </div>
   );
 }

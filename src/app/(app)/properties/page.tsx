@@ -6,12 +6,7 @@ import SearchBar from "@/components/ui/SearchBar";
 import PropertyCard, { Property } from "@/components/ui/PropertyCard";
 import MapPane from "@/components/ui/MapPane";
 
-type Bounds = {
-  north: number;
-  south: number;
-  east: number;
-  west: number;
-};
+type Bounds = { north: number; south: number; east: number; west: number };
 
 type MapPropertyPin = {
   id: string;
@@ -79,13 +74,8 @@ function PropertiesView() {
     if (!bounds) return base;
     return base.filter((p) => {
       const c = CITY_CENTROIDS[`${p.city}, ${p.state}`];
-      if (!c) return true; // show if no centroid known
-      return (
-        c.lat <= bounds.north &&
-        c.lat >= bounds.south &&
-        c.lng <= bounds.east &&
-        c.lng >= bounds.west
-      );
+      if (!c) return true;
+      return c.lat <= bounds.north && c.lat >= bounds.south && c.lng <= bounds.east && c.lng >= bounds.west;
     });
   }, [base, bounds]);
 
@@ -115,10 +105,11 @@ function PropertiesView() {
       <section className="rounded-2xl overflow-hidden border border-[#1e2733] bg-[#0b121a]">
         <div style={{ height: 420 }}>
           <MapPane
-            defaultCenter={{ lat: 37.5, lng: -96.5 }}
-            defaultZoom={4}
+            initialCenter={{ lat: 37.5, lng: -96 }}
+            initialZoom={4}
             markers={pins}
-            onBoundsChange={(b) => setBounds(b)}
+            onBoundsChange={setBounds}
+            height={420}
           />
         </div>
       </section>
@@ -126,10 +117,7 @@ function PropertiesView() {
       {/* 5-column gallery below the map */}
       <section
         className="grid"
-        style={{
-          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-          gap: 16,
-        }}
+        style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 16 }}
       >
         {visible.map((p) => (
           <PropertyCard key={p.id} p={p} />
