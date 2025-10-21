@@ -1,14 +1,27 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "ArbiBase",
-  description: "Operator portal",
+  title: "ArbiBase Portal",
+  description: "Property management portal",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <head>
+        <script
+          async
+          defer
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        ></script>
+      </head>
+      <body className="antialiased">
+        {children}
+      </body>
     </html>
   );
 }
