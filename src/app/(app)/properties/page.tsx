@@ -4,7 +4,20 @@ import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SearchBar from "@/components/ui/SearchBar";
 import PropertyCard, { Property } from "@/components/ui/PropertyCard";
-import MapPane, { Bounds, MapPropertyPin } from "@/components/ui/MapPane";
+import MapPane from "@/components/ui/MapPane";
+
+type Bounds = {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+};
+
+type MapPropertyPin = {
+  id: string;
+  title?: string;
+  position: { lat: number; lng: number };
+};
 
 /** Demo seed (added Tampa to keep 5 cards) */
 const DEMO: Property[] = [
@@ -83,7 +96,7 @@ function PropertiesView() {
         .map((p) => {
           const c = CITY_CENTROIDS[`${p.city}, ${p.state}`];
           if (!c) return null;
-          return { id: p.id, title: `${p.city}, ${p.state} — $${p.rent}`, pos: c };
+          return { id: p.id, title: `${p.city}, ${p.state} — $${p.rent}`, position: c };
         })
         .filter(Boolean) as MapPropertyPin[],
     [base]
@@ -102,10 +115,10 @@ function PropertiesView() {
       <section className="rounded-2xl overflow-hidden border border-[#1e2733] bg-[#0b121a]">
         <div style={{ height: 420 }}>
           <MapPane
-            center={{ lat: 37.5, lng: -96.5 }}
-            zoom={4}
-            pins={pins}
-            onBoundsChange={setBounds}
+            defaultCenter={{ lat: 37.5, lng: -96.5 }}
+            defaultZoom={4}
+            markers={pins}
+            onBoundsChange={(b) => setBounds(b)}
           />
         </div>
       </section>

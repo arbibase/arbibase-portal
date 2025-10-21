@@ -69,3 +69,14 @@ input[type="text"], input[type="number"], select {
   .container .grid[style*="repeat(5"] { grid-template-columns: repeat(1, minmax(0,1fr)) !important; }
 }
 
+/* search bar refinements */
+.search-rail input,
+.search-rail select {
+  height: 40px;
+  font-size: 14px;
+}
+
+.search-rail .btn.primary {
+  height: 40px;
+  padding: 0 14px;
+}
