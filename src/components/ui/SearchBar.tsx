@@ -26,35 +26,41 @@ export default function SearchBar() {
 const router = useRouter();
 const params = useSearchParams();
 
-/* ---------- Tier (gate Advanced) ---------- */
+// ---- Tier gate (robust) ----
 const [tier, setTier] = useState<Tier>("beta");
-  const proPlus =
-    tier === "pro" ||
-    tier === "premium" ||
-    (process.env.NEXT_PUBLIC_TIER_OVERRIDE as Tier | undefined) === "pro" ||
-    (process.env.NEXT_PUBLIC_TIER_OVERRIDE as Tier | undefined) === "premium";
+const proPlus = tier === "pro" || tier === "premium";
 
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!supabase) return;
-        const auth = supabase.auth;
-        if (!auth) return;
-        const { data } = await auth.getUser();
-        const uid = data?.user?.id;
-        if (!uid) return;
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("tier")
-          .eq("id", uid)
-          .maybeSingle();
-        const t = (prof?.tier as Tier) || "beta";
-        setTier(t);
-      } catch {
-        // keep default
-      }
-    })();
-  }, []);
+useEffect(() => {
+  // 1) local override (for testing UI quickly)
+  if (typeof window !== "undefined") {
+    const t = (localStorage.getItem("arbibase:tier") as Tier | null) ||
+              (process.env.NEXT_PUBLIC_FORCE_TIER as Tier | undefined);
+    if (t === "pro" || t === "premium" || t === "beta") {
+      setTier(t);
+      return;
+    }
+  }
+
+  // 2) supabase profile lookup (best effort)
+  // Guard against a potentially null supabase client to satisfy TypeScript.
+  if (!supabase) {
+    setTier("beta");
+    return;
+  }
+
+  (async () => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      const uid = data?.user?.id;
+      if (!uid) return;
+      const { data: prof } = await supabase.from("profiles").select("tier").eq("id", uid).maybeSingle();
+      setTier(((prof?.tier as Tier) || "beta"));
+    } catch {
+      // don’t lock people out on errors; default to beta
+      setTier("beta");
+    }
+  })();
+}, []);
 
   /* ---------- Tabs ---------- */
   const [tab, setTab] = useState<TabKey>("quick");
@@ -139,8 +145,8 @@ const [tier, setTier] = useState<Tier>("beta");
       </div>
 
       {/* QUICK (compact) */}
-      {tab === "quick" && (
-        <form onSubmit={submitQuick} className="grid grid-cols-[1.2fr_.6fr_auto] gap-3 md:grid-cols-[1fr_.5fr_.5fr_auto]">
+{tab === "quick" && (
+  <form onSubmit={submitQuick} className="grid items-end gap-3" style={{ gridTemplateColumns: "1fr 140px 140px auto" }}>
           <Input
             icon={<Search className="h-4 w-4 opacity-70" />}
             placeholder="Address, city, state, or ZIP…"
@@ -154,8 +160,8 @@ const [tier, setTier] = useState<Tier>("beta");
       )}
 
       {/* ADVANCED (accordion style, space-aware) */}
-      {tab === "advanced" && (
-        <form onSubmit={submitAdvanced} className="grid gap-3">
+{tab === "advanced" && (
+  <form onSubmit={submitAdvanced} className="grid gap-3" style={{ gridTemplateColumns: "1fr 220px 220px 140px 140px 220px" }}>
           <div className="grid grid-cols-[1.2fr_.6fr_.6fr] gap-3 md:grid-cols-3">
             <Input
               icon={<Search className="h-4 w-4 opacity-70" />}

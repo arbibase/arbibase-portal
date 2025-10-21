@@ -1,90 +1,116 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { memo, useMemo, useState, useEffect } from "react";
-import type { Property } from "./PropertyCard";
-import { LatLngBounds, Map as LeafletMapType } from "leaflet";
-import { useMap } from "react-leaflet";
+import { useCallback, useMemo, useRef } from "react";
+import {
+  GoogleMap,
+  Marker,
+  MarkerClusterer,
+  useLoadScript,
+} from "@react-google-maps/api";
 
-const LeafletMap = dynamic(
-  async () => {
-    const L = await import("react-leaflet");
-    return ({ children, ...props }: any) => <L.MapContainer {...props}>{children}</L.MapContainer>;
-  },
-  { ssr: false }
-);
-const TileLayer = dynamic(async () => (await import("react-leaflet")).TileLayer, { ssr: false });
-const Marker = dynamic(async () => (await import("react-leaflet")).Marker, { ssr: false });
-const Popup = dynamic(async () => (await import("react-leaflet")).Popup, { ssr: false });
-// useMap is imported directly from 'react-leaflet' above; do not dynamic() a hook.
+type LatLng = { lat: number; lng: number };
 
-type Props = {
-  properties?: (Property & { lat?: number; lng?: number })[];
-  height?: number;
-  onBoundsChange?: (b: LatLngBounds) => void;
+export type MapPropertyPin = {
+  id: string;
+  title?: string;
+  pos: LatLng;    // use city centroids for now
 };
 
-/** Handles interactive map + bound sync */
-function MapPane({ properties = [], height = 420, onBoundsChange }: Props) {
-  const center = useMemo(() => {
-    const withGeo = properties.filter((p) => p.lat && p.lng);
-    if (withGeo.length) {
-      const { lat, lng } = withGeo[0] as any;
-      return [lat, lng] as [number, number];
-    }
-    return [39.5, -98.35] as [number, number]; // default US center
-  }, [properties]);
+export type Bounds = {
+  north: number; south: number; east: number; west: number;
+};
+
+export default function MapPane({
+  center = { lat: 39.5, lng: -98.35 }, // US center
+  zoom = 4,
+  pins = [],
+  onBoundsChange,
+}: {
+  center?: LatLng;
+  zoom?: number;
+  pins?: MapPropertyPin[];
+  onBoundsChange?: (b: Bounds) => void;
+}) {
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    libraries: ["places"],
+  });
+
+  const mapRef = useRef<google.maps.Map | null>(null);
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+    // emit initial bounds
+    const b = map.getBounds();
+    if (b && onBoundsChange) emitBounds(b, onBoundsChange);
+  }, [onBoundsChange]);
+
+  const onIdle = useCallback(() => {
+    if (!mapRef.current || !onBoundsChange) return;
+    const b = mapRef.current.getBounds();
+    if (b) emitBounds(b, onBoundsChange);
+  }, [onBoundsChange]);
+
+  if (!isLoaded) {
+    return (
+      <div className="gmap skeleton" />
+    );
+  }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#1e2733]" style={{ height }}>
-      <LeafletMap
+    <div className="gmap">
+      <GoogleMap
+        mapContainerStyle={{ width: "100%", height: "100%" }}
         center={center}
-        zoom={5}
-        scrollWheelZoom
-        style={{ height: "100%", width: "100%" }}
-        whenCreated={(map: LeafletMapType) => {
-          if (onBoundsChange) onBoundsChange(map.getBounds());
+        zoom={zoom}
+        onLoad={onLoad}
+        onIdle={onIdle}
+        options={{
+          gestureHandling: "greedy",
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+          clickableIcons: false,
+          styles: gmDarkStyle, // subtle dark map to match UI
         }}
       >
-        <TileLayer
-          attribution='&copy; OpenStreetMap'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {properties
-          .filter((p) => p.lat && p.lng)
-          .map((p) => (
-            <Marker key={p.id} position={[p.lat as number, p.lng as number]}>
-              <Popup>
-                <div className="text-sm">
-                  <div className="font-semibold">
-                    {p.city}, {p.state}
-                  </div>
-                  <div>${p.rent?.toLocaleString?.()}/mo</div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        <MapWatcher onBoundsChange={onBoundsChange} />
-      </LeafletMap>
+        <MarkerClusterer>
+          {(clusterer) => (
+            <>
+              {pins.map((p) => (
+                <Marker
+                  key={p.id}
+                  position={p.pos}
+                  clusterer={clusterer}
+                  title={p.title}
+                  // You can use custom icons later
+                />
+              ))}
+            </>
+          )}
+        </MarkerClusterer>
+      </GoogleMap>
     </div>
   );
 }
 
-/** Internal component to detect map bound changes */
-function MapWatcher({ onBoundsChange }: { onBoundsChange?: (b: LatLngBounds) => void }) {
-  const map = useMap() as LeafletMapType;
-  useEffect(() => {
-    if (!map || !onBoundsChange) return;
-    const handler = () => {
-      const b = map.getBounds();
-      onBoundsChange(b);
-    };
-    map.on("moveend", handler);
-    return () => {
-      map.off("moveend", handler);
-    };
-  }, [map, onBoundsChange]);
-  return null;
+function emitBounds(
+  b: google.maps.LatLngBounds,
+  cb: (bounds: Bounds) => void
+) {
+  const ne = b.getNorthEast();
+  const sw = b.getSouthWest();
+  cb({ north: ne.lat(), east: ne.lng(), south: sw.lat(), west: sw.lng() });
 }
 
-export default memo(MapPane);
+/** Minimal dark style (tweak later) */
+const gmDarkStyle: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry", stylers: [{ color: "#0b121a" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#9aa5b1" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0b121a" }] },
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1b2634" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#b3c0cf" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e2235" }] },
+];
