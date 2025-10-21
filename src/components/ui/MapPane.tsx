@@ -1,135 +1,95 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, CSSProperties } from "react";
-import {
-  GoogleMap,
-  Marker,
-  MarkerClustererF,
-  useJsApiLoader,
-} from "@react-google-maps/api";
+import { useMemo, useRef } from "react";
+import { GoogleMap, Marker, InfoWindow, MarkerClusterer } from "@react-google-maps/api";
 
-type Bounds = { north: number; south: number; east: number; west: number };
-
-export type MapMarker = {
+export type MapPin = {
   id: string;
-  title?: string;
-  position: { lat: number; lng: number };
+  position: google.maps.LatLngLiteral;
+  title: string;
+  price?: number;
+  address?: string;
 };
 
 type Props = {
-  /** Initial center for first render (controlled internally afterwards) */
-  initialCenter: { lat: number; lng: number };
-  /** Initial zoom (default 4) */
+  initialCenter: google.maps.LatLngLiteral;
   initialZoom?: number;
-  /** Optional markers to render (clustered) */
-  markers?: MapMarker[];
-  /** Called on idle (pan/zoom end) with current map bounds */
-  onBoundsChange?: (b: Bounds) => void;
-  /** Optional fixed height (px). Default 420 */
-  heightPx?: number;
+  pins: MapPin[];
+  selectedId?: string | null;
+  onBoundsChange?: (b: {north:number;south:number;east:number;west:number}) => void;
+  onSelect?: (id: string | null) => void;
 };
 
-// keep libraries stable to avoid perf warning
-const LIBRARIES = ["places"] as const;
-
-const containerStyle: CSSProperties = {
-  width: "100%",
-  height: "100%",
-};
+const containerStyle = { width: "100%", height: "100%" };
 
 export default function MapPane({
   initialCenter,
   initialZoom = 4,
-  markers = [],
+  pins,
+  selectedId,
   onBoundsChange,
-  heightPx = 420,
+  onSelect,
 }: Props) {
   const mapRef = useRef<google.maps.Map | null>(null);
-  const [center] = useState(initialCenter);
-  const [zoom] = useState(initialZoom);
 
-  const { isLoaded } = useJsApiLoader({
-    id: "arbibase-gmaps",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: LIBRARIES as unknown as undefined, // correct typing quirk
-  });
-
-  const handleLoad = useCallback((m: google.maps.Map) => {
-    mapRef.current = m;
-  }, []);
-
-  const handleUnmount = useCallback(() => {
-    mapRef.current = null;
-  }, []);
-
-  const handleIdle = useCallback(() => {
-    if (!mapRef.current || !onBoundsChange) return;
-    const b = mapRef.current.getBounds();
-    if (!b) return;
-    const ne = b.getNorthEast();
-    const sw = b.getSouthWest();
-    onBoundsChange({
-      north: ne.lat(),
-      south: sw.lat(),
-      east: ne.lng(),
-      west: sw.lng(),
-    });
-  }, [onBoundsChange]);
-
-  const mapOptions = useMemo<google.maps.MapOptions>(
-    () => ({
-      disableDefaultUI: false,
-      clickableIcons: false,
-      gestureHandling: "greedy",
-      mapTypeControl: false,
-      fullscreenControl: true,
-      streetViewControl: false,
-      // Using default (light) Google theme per your request
-    }),
-    []
-  );
-
-  if (!isLoaded) {
-    return (
-      <div
-        className="w-full rounded-xl border border-[#1e2733] bg-[#0b121a]"
-        style={{ height: heightPx }}
-      />
-    );
-  }
+  const options = useMemo<google.maps.MapOptions>(() => ({
+    mapId: undefined, // keep default light style per Google TOS
+    fullscreenControl: true,
+    mapTypeControl: true,
+    streetViewControl: false,
+    clickableIcons: false,
+  }), []);
 
   return (
-    <div
-      className="w-full rounded-xl overflow-hidden"
-      style={{ height: heightPx }}
+    <GoogleMap
+      onLoad={(m) => { mapRef.current = m; }}
+      onUnmount={() => { mapRef.current = null; }}
+      onIdle={() => {
+        const b = mapRef.current?.getBounds();
+        if (!b) return;
+        const ne = b.getNorthEast();
+        const sw = b.getSouthWest();
+        onBoundsChange?.({
+          north: ne.lat(), east: ne.lng(),
+          south: sw.lat(), west: sw.lng(),
+        });
+      }}
+      center={initialCenter}
+      zoom={initialZoom}
+      options={options}
+      mapContainerStyle={containerStyle}
     >
-      <GoogleMap
-        onLoad={handleLoad}
-        onUnmount={handleUnmount}
-        center={center}
-        zoom={zoom}
-        onIdle={handleIdle}
-        options={mapOptions}
-        mapContainerStyle={containerStyle}
-      >
-        {/* Clustered markers – correct render-prop usage */}
-        {markers.length > 0 && (
-          <MarkerClustererF averageCenter enableRetinaIcons gridSize={60}>
-            {(clusterer) => (
-              <>
-                {markers.map((m) => (
-                  <Marker
-                    key={m.id}
-                    position={m.position}
-                    title={m.title}
-                    clusterer={clusterer}
-                  />
-                ))}
-              </>
-            )}
-          </MarkerClustererF>
+      <MarkerClusterer>
+        {(clusterer) => (
+          <>
+            {pins.map((p) => (
+              <Marker
+                key={p.id}
+                position={p.position}
+                title={p.title}
+                clusterer={clusterer}
+                onClick={() => onSelect?.(p.id)}
+              />
+            ))}
+          </>
         )}
-      </GoogleMap>
-    </div>
+      </MarkerClusterer>
+
+      {selectedId && (() => {
+        const sel = pins.find(p => p.id === selectedId);
+        if (!sel) return null;
+        return (
+          <InfoWindow
+            position={sel.position}
+            onCloseClick={() => onSelect?.(null)}
+          >
+            <div style={{maxWidth:220}}>
+              <div style={{fontWeight:700, marginBottom:4}}>{sel.title}</div>
+              {sel.address && <div style={{fontSize:12, opacity:.8}}>{sel.address}</div>}
+            </div>
+          </InfoWindow>
+        );
+      })()}
+    </GoogleMap>
   );
 }

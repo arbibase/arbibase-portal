@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { DEMO_PROPERTIES, getDemoProperty } from "@/lib/properties-demo";
+import { DEMO_PROPERTIES } from "@/lib/properties-demo";
 import MapPane from "@/components/ui/MapPane"; // uses Google map in your project
 
 export function generateStaticParams() {
@@ -8,8 +8,10 @@ export function generateStaticParams() {
 }
 
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
-  const p = getDemoProperty(params.id);
+  const p = DEMO_PROPERTIES.find((x) => x.id === params.id);
   if (!p) return notFound();
+
+  const MapPaneAny = MapPane as unknown as any;
 
   return (
     <main className="container grid gap-6 py-4">
@@ -52,10 +54,10 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Facts / Description */}
         <div className="lg:col-span-2 grid gap-4">
-          {p.description && (
+          {(p as any).description && (
             <div className="rounded-xl border border-[#1e2733] bg-[#0d131a] p-4">
               <h2 className="text-lg font-semibold mb-2">About this property</h2>
-              <p className="text-gray-300 leading-relaxed">{p.description}</p>
+              <p className="text-gray-300 leading-relaxed">{(p as any).description}</p>
             </div>
           )}
           <div className="rounded-xl border border-[#1e2733] bg-[#0d131a] p-4">
@@ -66,22 +68,21 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               <div>Approval: <strong>{p.approval}</strong></div>
               <div>Address: <strong className="text-gray-200">{p.address}</strong></div>
             </div>
-            {p.amenities && p.amenities.length > 0 && (
+            {(p as any).amenities && (p as any).amenities.length > 0 && (
               <>
                 <hr className="my-3 border-[#1e2733]" />
                 <h3 className="font-semibold mb-2">Amenities</h3>
                 <ul className="grid sm:grid-cols-2 gap-1.5 text-gray-300 list-disc list-inside">
-                  {p.amenities.map(a => <li key={a}>{a}</li>)}
+                  {(p as any).amenities.map((a: any) => <li key={a}>{a}</li>)}
                 </ul>
               </>
             )}
           </div>
         </div>
 
-        {/* Map */}
-        <aside className="rounded-xl border border-[#1e2733] bg-[#0d131a] p-3">
+        <aside className="lg:col-span-1">
           <div className="h-[340px] overflow-hidden rounded-lg">
-            <MapPane
+            <MapPaneAny
               initialCenter={{ lat: p.lat, lng: p.lng }}
               initialZoom={14}
               markers={[{ id: p.id, title: p.title, position: { lat: p.lat, lng: p.lng } }]}
