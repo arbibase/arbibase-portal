@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import SearchBar from "@/components/ui/SearchBar";
 import PropertyCard from "@/components/ui/PropertyCard";
 import { DEMO_PROPERTIES } from "@/lib/properties-demo";
 
-const MapPane = dynamic(() => import("@/components/ui/MapPane"), { ssr: false });
+const MapPane = nextDynamic(() => import("@/components/ui/MapPane"), { ssr: false });
 
 type Bounds = { north:number; south:number; east:number; west:number; };
 type Result = typeof DEMO_PROPERTIES[number];
@@ -89,3 +89,4 @@ export default function PropertiesPage() {
     </main>
   );
 }
+export const dynamic = "force-dynamic";
