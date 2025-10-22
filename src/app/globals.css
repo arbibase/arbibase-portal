@@ -1,7 +1,7 @@
-@import "../styles/tokens.css";
 @import "tailwindcss/preflight";
 @tailwind utilities;
 
+/* Your existing custom CSS variables and styles below */
 :root{
   --bg:#0c0f14; --surface:#11161e; --panel:#141b24; --panel-2:#0f141c;
   --border:#242c38; --head:#f6fbff; --text:#e6eef7; --muted:#9aa5b1;
