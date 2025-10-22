@@ -1,129 +1,105 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent } from "react";
 
-type Tier = "basic" | "pro" | "premium";
+interface SearchBarProps {
+  onLocationSearch?: (center: { lat: number; lng: number }) => void;
+}
 
-export default function SearchBar() {
+export default function SearchBar({ onLocationSearch }: SearchBarProps) {
   const router = useRouter();
-  const params = useSearchParams();
-  const [tier] = useState<Tier>("basic"); // later: fetch from user profile
-  const [q, setQ] = useState(() => params?.get("q") ?? "");
-  const [min, setMin] = useState(() => params?.get("min") ?? "");
-  const [max, setMax] = useState(() => params?.get("max") ?? "");
-  const [homeType, setHomeType] = useState("All");
-  const [beds, setBeds] = useState("Any");
-  const [baths, setBaths] = useState("Any");
-  const [approval, setApproval] = useState("Either");
+  const searchParams = useSearchParams();
 
-  const onSubmit = (e: React.FormEvent) => {
+  const q = searchParams?.get("q");
+  const min = searchParams?.get("min");
+  const max = searchParams?.get("max");
+  const type = searchParams?.get("type");
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const sp = new URLSearchParams();
-    if (q) sp.set("q", q);
-    if (min) sp.set("min", min);
-    if (max) sp.set("max", max);
-    if (approval !== "Either") sp.set("approval", approval);
-    router.push(`/properties?${sp.toString()}`);
-  };
+    const formData = new FormData(e.currentTarget);
+    const params = new URLSearchParams();
+
+    const query = formData.get("q") as string;
+    const minRent = formData.get("min") as string;
+    const maxRent = formData.get("max") as string;
+    const propertyType = formData.get("type") as string;
+
+    if (query) params.set("q", query);
+    if (minRent) params.set("min", minRent);
+    if (maxRent) params.set("max", maxRent);
+    if (propertyType && propertyType !== "All") params.set("type", propertyType);
+
+    // If there's a location query, try to geocode it
+    if (query && onLocationSearch) {
+      try {
+        const response = await fetch(`/api/geocode?address=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        
+        if (data.center) {
+          onLocationSearch(data.center);
+        }
+      } catch (error) {
+        console.error('Geocoding failed:', error);
+      }
+    }
+
+    router.push(`/properties?${params.toString()}`);
+  }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="z-10 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-neutral-800 bg-white/90 p-3 shadow-lg backdrop-blur-md dark:bg-[#0b121a]/90"
-      style={{ margin: "8px 0", position: "sticky", top: 0 }}
+    <form 
+      onSubmit={onSubmit} 
+      className="grid gap-2 items-center p-4 bg-[--panel] rounded-xl border border-[--border]"
+      style={{ gridTemplateColumns: "1.5fr 120px 120px 160px auto", columnGap: 8 }}
     >
-      {/* Location Search */}
-      <input
-        type="text"
-        placeholder="City, neighborhood, ZIP, address…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        className="min-w-[240px] flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+      {/* Location */}
+      <input 
+        name="q" 
+        placeholder="City, neighborhood, ZIP, address…" 
+        defaultValue={q ?? ""} 
+        className="px-3 py-2 bg-[--panel-2] border border-[--border] rounded-lg text-[--text] placeholder-[--muted]"
       />
 
-      {/* Price */}
-      <input
-        type="number"
-        placeholder="Min"
-        value={min}
-        onChange={(e) => setMin(e.target.value)}
-        className="w-[100px] rounded-lg border border-gray-300 px-3 py-2 text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
-      />
-      <input
-        type="number"
-        placeholder="Max"
-        value={max}
-        onChange={(e) => setMax(e.target.value)}
-        className="w-[100px] rounded-lg border border-gray-300 px-3 py-2 text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+      {/* Min Rent */}
+      <input 
+        name="min" 
+        placeholder="Min" 
+        type="number" 
+        min={0} 
+        defaultValue={min ?? ""}
+        className="px-3 py-2 bg-[--panel-2] border border-[--border] rounded-lg text-[--text] placeholder-[--muted]"
       />
 
-      {/* Home Type */}
-      <select
-        value={homeType}
-        onChange={(e) => setHomeType(e.target.value)}
-        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black focus:border-blue-500 focus:outline-none"
+      {/* Max Rent */}
+      <input 
+        name="max" 
+        placeholder="Max" 
+        type="number" 
+        min={0} 
+        defaultValue={max ?? ""}
+        className="px-3 py-2 bg-[--panel-2] border border-[--border] rounded-lg text-[--text] placeholder-[--muted]"
+      />
+
+      {/* Property Type */}
+      <select 
+        name="type" 
+        defaultValue={type ?? "All"} 
+        title="Home Type"
+        className="px-3 py-2 bg-[--panel-2] border border-[--border] rounded-lg text-[--text]"
       >
-        <option>All</option>
-        <option>House</option>
-        <option>Apartment</option>
-        <option>Condo</option>
-        <option>Townhome</option>
+        <option value="All">All homes</option>
+        <option value="Apartment">Apartment</option>
+        <option value="House">House</option>
+        <option value="Townhome">Townhome</option>
+        <option value="Condo">Condo</option>
+        <option value="Duplex">Duplex</option>
       </select>
 
-      {/* Tier-Locked Filters */}
-      {(tier === "pro" || tier === "premium") && (
-        <>
-          <select
-            value={beds}
-            onChange={(e) => setBeds(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black focus:border-blue-500 focus:outline-none"
-          >
-            <option>Any Beds</option>
-            <option>1+</option>
-            <option>2+</option>
-            <option>3+</option>
-          </select>
-          <select
-            value={baths}
-            onChange={(e) => setBaths(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black focus:border-blue-500 focus:outline-none"
-          >
-            <option>Any Baths</option>
-            <option>1+</option>
-            <option>2+</option>
-            <option>3+</option>
-          </select>
-          <select
-            value={approval}
-            onChange={(e) => setApproval(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black focus:border-blue-500 focus:outline-none"
-          >
-            <option>Either</option>
-            <option>STR</option>
-            <option>MTR</option>
-          </select>
-        </>
-      )}
-
-      {/* Submit */}
-      <button
-        type="submit"
-        className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
-      >
+      <button type="submit" className="btn btn-primary">
         Search
       </button>
-
-      {/* CTA */}
-      {tier === "basic" && (
-        <button
-          type="button"
-          onClick={() => alert("Upgrade to Pro to unlock advanced filters.")}
-          className="rounded-lg border border-blue-500 px-4 py-2 text-blue-600 hover:bg-blue-50"
-        >
-          Unlock Advanced Filters — Go Pro
-        </button>
-      )}
     </form>
   );
 }
