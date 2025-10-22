@@ -1,95 +1,129 @@
+// src/components/ui/MapPane.tsx
 "use client";
 
-import { useMemo, useRef } from "react";
-import { GoogleMap, Marker, InfoWindow, MarkerClusterer } from "@react-google-maps/api";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
+import {
+  GoogleMap,
+  LoadScript,
+  Marker,
+  InfoWindow,
+  MarkerClustererF,
+} from "@react-google-maps/api";
 
-export type MapPin = {
+export type MapMarker = {
   id: string;
+  title?: string;
   position: google.maps.LatLngLiteral;
-  title: string;
-  price?: number;
-  address?: string;
 };
 
 type Props = {
   initialCenter: google.maps.LatLngLiteral;
   initialZoom?: number;
-  pins: MapPin[];
-  selectedId?: string | null;
-  onBoundsChange?: (b: {north:number;south:number;east:number;west:number}) => void;
-  onSelect?: (id: string | null) => void;
+  markers?: MapMarker[];
+  /** called when visible bounds change */
+  onBoundsChange?: (b: { north: number; south: number; east: number; west: number }) => void;
 };
 
-const containerStyle = { width: "100%", height: "100%" };
+const LIBRARIES: (
+  | "core"
+  | "maps"
+  | "places"
+  | "geocoding"
+  | "routes"
+  | "marker"
+  | "geometry"
+)[] = ["places", "geometry"];
 
-export default function MapPane({
+const containerStyle: React.CSSProperties = { width: "100%", height: "100%" };
+
+function MapPaneImpl({
   initialCenter,
   initialZoom = 4,
-  pins,
-  selectedId,
+  markers = [],
   onBoundsChange,
-  onSelect,
 }: Props) {
   const mapRef = useRef<google.maps.Map | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  const options = useMemo<google.maps.MapOptions>(() => ({
-    mapId: undefined, // keep default light style per Google TOS
-    fullscreenControl: true,
-    mapTypeControl: true,
-    streetViewControl: false,
-    clickableIcons: false,
-  }), []);
+  const options = useMemo<google.maps.MapOptions>(
+    () => ({
+      mapTypeControl: true,
+      clickableIcons: false,
+      gestureHandling: "greedy",
+      draggable: true,
+      streetViewControl: false,
+      fullscreenControl: true,
+    }),
+    []
+  );
 
-  return (
-    <GoogleMap
-      onLoad={(m) => { mapRef.current = m; }}
-      onUnmount={() => { mapRef.current = null; }}
-      onIdle={() => {
-        const b = mapRef.current?.getBounds();
-        if (!b) return;
+  const handleLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+    // fit once on load if you want; otherwise let initialCenter/zoom stand
+    // map.panTo(initialCenter); map.setZoom(initialZoom);
+    if (onBoundsChange) {
+      const b = map.getBounds();
+      if (b) {
         const ne = b.getNorthEast();
         const sw = b.getSouthWest();
-        onBoundsChange?.({
-          north: ne.lat(), east: ne.lng(),
-          south: sw.lat(), west: sw.lng(),
-        });
-      }}
-      center={initialCenter}
-      zoom={initialZoom}
-      options={options}
-      mapContainerStyle={containerStyle}
-    >
-      <MarkerClusterer>
-        {(clusterer) => (
-          <>
-            {pins.map((p) => (
-              <Marker
-                key={p.id}
-                position={p.position}
-                title={p.title}
-                clusterer={clusterer}
-                onClick={() => onSelect?.(p.id)}
-              />
-            ))}
-          </>
-        )}
-      </MarkerClusterer>
+        onBoundsChange({ north: ne.lat(), east: ne.lng(), south: sw.lat(), west: sw.lng() });
+      }
+    }
+  }, [onBoundsChange]);
 
-      {selectedId && (() => {
-        const sel = pins.find(p => p.id === selectedId);
-        if (!sel) return null;
-        return (
-          <InfoWindow
-            position={sel.position}
-            onCloseClick={() => onSelect?.(null)}
-          >
-            <div style={{maxWidth:220}}>
-              <div style={{fontWeight:700, marginBottom:4}}>{sel.title}</div>
-              {sel.address && <div style={{fontSize:12, opacity:.8}}>{sel.address}</div>}
-            </div>
-          </InfoWindow>
-        );
-      })()}
-    </GoogleMap>
+  const handleUnmount = useCallback(() => {
+    mapRef.current = null;
+  }, []);
+
+  const handleIdle = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !onBoundsChange) return;
+    const b = map.getBounds();
+    if (!b) return;
+    const ne = b.getNorthEast();
+    const sw = b.getSouthWest();
+    onBoundsChange({ north: ne.lat(), east: ne.lng(), south: sw.lat(), west: sw.lng() });
+  }, [onBoundsChange]);
+
+  return (
+    <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!} libraries={LIBRARIES}>
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={initialCenter}
+        zoom={initialZoom}
+        options={options}
+        onLoad={handleLoad}
+        onUnmount={handleUnmount}
+        onIdle={handleIdle}
+      >
+        <MarkerClustererF>
+          {(clusterer) => (
+            <>
+              {markers.map((m) => (
+                <Marker
+                  key={m.id}
+                  position={m.position}
+                  clusterer={clusterer}
+                  onClick={() => setActiveId(m.id)}
+                />
+              ))}
+            </>
+          )}
+        </MarkerClustererF>
+
+        {activeId && (() => {
+          const m = markers.find(x => x.id === activeId)!;
+          return (
+            <InfoWindow position={m.position} onCloseClick={() => setActiveId(null)}>
+              <div style={{ maxWidth: 220 }}>
+                <strong>{m.title ?? "Listing"}</strong>
+              </div>
+            </InfoWindow>
+          );
+        })()}
+      </GoogleMap>
+    </LoadScript>
   );
 }
+
+export default memo(MapPaneImpl);

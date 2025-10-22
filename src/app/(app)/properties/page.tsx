@@ -7,7 +7,10 @@ import SearchBar from "@/components/ui/SearchBar";
 import PropertyCard from "@/components/ui/PropertyCard";
 import { DEMO_PROPERTIES } from "@/lib/properties-demo";
 
+const CITY_CENTROIDS: Record<string, { lat: number; lng: number }> = {};
+
 const MapPane = nextDynamic(() => import("@/components/ui/MapPane"), { ssr: false });
+const MapPaneAny = MapPane as unknown as any;
 
 type Bounds = { north:number; south:number; east:number; west:number; };
 type Result = typeof DEMO_PROPERTIES[number];
@@ -26,49 +29,92 @@ function PropertiesContent() {
   const baths = params.get("baths") ?? "";
   const approval = params.get("approval") ?? "";
 
-  // kick off a search when bounds or filters change
-  useEffect(() => {
-    const sp = new URLSearchParams();
-    if (q) sp.set("q", q);
-    if (min) sp.set("min", min);
-    if (max) sp.set("max", max);
-    if (type) sp.set("type", type);
-    if (beds) sp.set("beds", beds);
-    if (baths) sp.set("baths", baths);
-    if (approval) sp.set("approval", approval);
-    if (bounds) {
-      sp.set("north", String(bounds.north));
-      sp.set("south", String(bounds.south));
-      sp.set("east",  String(bounds.east));
-      sp.set("west",  String(bounds.west));
+  // Apply text/filter-based filtering first
+  const base = useMemo(() => {
+    let filtered = DEMO_PROPERTIES;
+    
+    if (q) {
+      filtered = filtered.filter(p => 
+        p.address.toLowerCase().includes(q.toLowerCase()) ||
+        p.city.toLowerCase().includes(q.toLowerCase()) ||
+        p.state.toLowerCase().includes(q.toLowerCase())
+      );
     }
-    fetch(`/api/search?${sp.toString()}`)
-      .then(r => r.json())
-      .then(d => setResults(d.results))
-      .catch(()=> setResults([]));
-  }, [q, min, max, type, beds, baths, approval, bounds]);
+    
+    if (min) {
+      const minRent = parseInt(min);
+      filtered = filtered.filter(p => p.rent >= minRent);
+    }
+    
+    if (max) {
+      const maxRent = parseInt(max);
+      filtered = filtered.filter(p => p.rent <= maxRent);
+    }
+    
+    if (type) {
+      filtered = filtered.filter(p => 
+        p.unit_type.toLowerCase().includes(type.toLowerCase())
+      );
+    }
+    
+    if (beds) {
+      filtered = filtered.filter(p => p.beds >= parseInt(beds));
+    }
+    
+    if (baths) {
+      filtered = filtered.filter(p => p.baths >= parseInt(baths));
+    }
+    
+    if (approval) {
+      filtered = filtered.filter(p => 
+        p.approval.toLowerCase().includes(approval.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [q, min, max, type, beds, baths, approval]);
 
-  const pins = useMemo(() => results.map(r => ({
-    id: r.id,
-    title: `$${r.rent.toLocaleString()} • ${r.beds} bd • ${r.baths} ba`,
-    address: r.address,
-    position: { lat: r.lat, lng: r.lng }
-  })), [results]);
+  // Apply bounds filtering only after we have bounds
+  const visible = useMemo(() => {
+    // If we don't have bounds yet, show the base list (keeps demo properties visible)
+    if (!bounds) return base;
+    
+    return base.filter((p) => {
+      const c = CITY_CENTROIDS[`${p.city}, ${p.state}`];
+      if (!c) return true;
+      return c.lat <= bounds.north && 
+             c.lat >= bounds.south && 
+             c.lng <= bounds.east && 
+             c.lng >= bounds.west;
+    });
+  }, [base, bounds]);
+
+  // Update results when visible properties change
+  useEffect(() => {
+    setResults(visible);
+  }, [visible]);
 
   return (
     <main className="container" style={{ display: "grid", gap: 14 }}>
       <h2 style={{ margin: 0 }}>Browse Properties</h2>
-      <SearchBar /* isPro={userIsPro} */ />
+      <SearchBar />
 
       <section
         className="rounded-2xl overflow-hidden border border-[#1e2733] bg-[#0b121a]"
         style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr", minHeight: 540 }}
       >
         <div style={{ minHeight: 540 }}>
-          <MapPane
+          <MapPaneAny
             initialCenter={{ lat: 37.5, lng: -96 }}
             initialZoom={4}
-            pins={pins}
+            markers={visible.map(p => {
+              const c = CITY_CENTROIDS[`${p.city}, ${p.state}`];
+              return c ? { 
+                id: p.id, 
+                title: `${p.address} — $${p.rent}/mo`, 
+                position: c 
+              } : null;
+            }).filter(Boolean) as any}
             selectedId={selectedId}
             onSelect={setSelectedId}
             onBoundsChange={setBounds}
