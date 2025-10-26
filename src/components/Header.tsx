@@ -28,15 +28,11 @@ return (
   <header className="sticky top-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/10">
     <div className="mx-auto max-w-[1140px] px-6">
       <div className="h-16 flex items-center justify-between">
-          {/* Logo (kept away from the chrome edge via container padding) */}
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/logo-mark.svg" // use your logo file here
-              alt="ArbiBase"
-              width={22}
-              height={22}
-              priority
-            />
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-linear-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
+              A
+            </div>
             <span className="text-white/95 font-semibold tracking-[0.2px]">ArbiBase</span>
           </Link>
 

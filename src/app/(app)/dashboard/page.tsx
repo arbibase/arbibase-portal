@@ -164,7 +164,7 @@ export default function Dashboard() {
     return full.split(" ")[0];
   }, [user]);
 
-  if (loading) return <AppShell active="overview"><div className="p-10 text-center">Loading…</div></AppShell>;
+  if (loading) return <AppShell active="overview"><div className="p-10 text-center fine">Loading…</div></AppShell>;
 
   return (
     <AppShell active="overview">
