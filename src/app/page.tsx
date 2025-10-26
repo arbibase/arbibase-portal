@@ -1,56 +1,37 @@
-// src/app/page.tsx
-import Link from "next/link";
-import Image from "next/image";
-import PortalHero from "@/components/PortalHero";
-
-export const dynamic = "force-dynamic";
-
-export const metadata = {
-  title: "ArbiBase Portal — Sign in",
-  description:
-    "Secure access to the ArbiBase operator portal. Accounts are provisioned by administrators.",
-};
-
-function Header() {
+// Inline Header fallback to avoid missing ../components/Header module
+const Header = () => {
   return (
-    <header className="mx-auto w-full max-w-[1100px] px-6 py-6">
+    <header className="mx-auto max-w-[980px] px-6 py-6">
       <div className="flex items-center justify-between">
-        <Link
-          href="https://arbibase.com"
-          className="flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-sky-400 rounded"
-          aria-label="ArbiBase website"
-        >
-          <Image
-            src="/arbibase-logo.svg"
-            alt="ArbiBase"
-            width={140}
-            height={28}
-            priority
-          />
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-6 text-sm text-slate-300">
-          <Link href="https://arbibase.com" className="hover:text-white">
-            Website
-          </Link>
-          <Link href="https://arbibase.com/pricing" className="hover:text-white">
-            Pricing
-          </Link>
-          <Link href="https://arbibase.com/about-us" className="hover:text-white">
-            Contact
-          </Link>
+        <a href="/" className="font-semibold text-lg">ArbiBase</a>
+        <nav className="flex gap-4 text-sm text-slate-300">
+          <a href="/about" className="hover:text-white">About</a>
+          <a href="/pricing" className="hover:text-white">Pricing</a>
+          <a href="/contact" className="hover:text-white">Contact</a>
         </nav>
       </div>
-      <div className="mt-4 h-px w-full bg-white/5" />
     </header>
   );
-}
+};
+import PortalHero from "../components/PortalHero";
+import { Inside } from "../components/PortalHero"; // if you put Inside in same file, export it
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen bg-[#071019] text-white">
+    <div className="min-h-screen bg-[#071019] text-white">
       <Header />
       <PortalHero />
+      <Inside />
+      <footer className="border-t border-white/10 bg-[#0a141d] py-8">
+        <div className="mx-auto flex max-w-[980px] items-center justify-between px-6 text-xs text-slate-400">
+          <p>© {new Date().getFullYear()} ArbiBase. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a className="hover:text-white" href="https://arbibase.com/privacy">Privacy</a>
+            <a className="hover:text-white" href="https://arbibase.com/terms">Terms</a>
+            <a className="hover:text-white" href="https://www.linkedin.com/company/arbibase/">LinkedIn</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
