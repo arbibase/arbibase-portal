@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,7 +13,7 @@ import {
   Eye,
 } from "@phosphor-icons/react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -97,68 +98,68 @@ export default function LoginPage() {
           </p>
 
           {/* Form */}
-<form onSubmit={signIn} className="mt-6 grid gap-3">
-{/* Email */}
-<div className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-  <div className="flex items-center">
-    {/* Icon rail */}
-    <div className="w-11 h-10 grid place-items-center border-r border-white/10 text-slate-300/80">
-      <EnvelopeSimple size={18} />
-    </div>
-    {/* Input */}
-    <input
-      type="email"
-      autoComplete="email"
-      placeholder="Email"
-      value={email}
-      onChange={(e) => setEmail(e.target.value)}
-      className="flex-1 bg-transparent px-3 py-2 text-white placeholder-white/50 outline-none
-                 focus-visible:ring-2 focus-visible:ring-emerald-400/30 focus-visible:border-emerald-400/40"
-      aria-label="Email address"
-    />
-  </div>
-</div>
+          <form onSubmit={signIn} className="mt-6 grid gap-3">
+            {/* Email */}
+            <div className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <div className="flex items-center">
+                {/* Icon rail */}
+                <div className="w-11 h-10 grid place-items-center border-r border-white/10 text-slate-300/80">
+                  <EnvelopeSimple size={18} />
+                </div>
+                {/* Input */}
+                <input
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 bg-transparent px-3 py-2 text-white placeholder-white/50 outline-none
+                             focus-visible:ring-2 focus-visible:ring-emerald-400/30 focus-visible:border-emerald-400/40"
+                  aria-label="Email address"
+                />
+              </div>
+            </div>
 
-{/* Password */}
-<div className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-  <div className="flex items-center">
-    {/* Icon rail */}
-    <div className="w-11 h-10 grid place-items-center border-r border-white/10 text-slate-300/80">
-      <Lock size={18} />
-    </div>
-    {/* Input */}
-    <input
-      type={showPwd ? "text" : "password"}
-      autoComplete="current-password"
-      placeholder="Password"
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-      className="flex-1 bg-transparent px-3 py-2 text-white placeholder-white/50 outline-none
-                 focus-visible:ring-2 focus-visible:ring-emerald-400/30 focus-visible:border-emerald-400/40"
-      aria-label="Password"
-    />
-    {/* Eye toggle */}
-    <button
-      type="button"
-      onClick={() => setShowPwd((s) => !s)}
-      className="w-11 h-10 grid place-items-center text-slate-300/75 hover:text-white"
-      aria-label={showPwd ? "Hide password" : "Show password"}
-    >
-      <Eye size={18} />
-    </button>
-  </div>
-</div>
+            {/* Password */}
+            <div className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+              <div className="flex items-center">
+                {/* Icon rail */}
+                <div className="w-11 h-10 grid place-items-center border-r border-white/10 text-slate-300/80">
+                  <Lock size={18} />
+                </div>
+                {/* Input */}
+                <input
+                  type={showPwd ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex-1 bg-transparent px-3 py-2 text-white placeholder-white/50 outline-none
+                             focus-visible:ring-2 focus-visible:ring-emerald-400/30 focus-visible:border-emerald-400/40"
+                  aria-label="Password"
+                />
+                {/* Eye toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((s) => !s)}
+                  className="w-11 h-10 grid place-items-center text-slate-300/75 hover:text-white"
+                  aria-label={showPwd ? "Hide password" : "Show password"}
+                >
+                  <Eye size={18} />
+                </button>
+              </div>
+            </div>
 
-  {err && <div className="mt-1 text-sm text-rose-300">{err}</div>}
+            {err && <div className="mt-1 text-sm text-rose-300">{err}</div>}
 
-  <button
-    className="glow-in mt-2 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-300"
-    disabled={busy}
-    type="submit"
-  >
-    {busy ? "Signing in…" : "Sign in"}
-  </button>
-</form>
+            <button
+              className="glow-in mt-2 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-300"
+              disabled={busy}
+              type="submit"
+            >
+              {busy ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
           {/* Meta */}
           <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
             <span>Admin-only accounts. No self-signups.</span>
@@ -178,5 +179,20 @@ export default function LoginPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent"></div>
+          <p className="mt-4 text-sm text-white/70">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
