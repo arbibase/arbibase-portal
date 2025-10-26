@@ -1,16 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import {
-  CaretDown, House, Compass, ClipboardText, Star, Layout, SignOut, CreditCard, Phone, Info
-} from "@phosphor-icons/react";
+import { SignOut, User } from "@phosphor-icons/react";
 
 export default function Header() {
-  const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -24,59 +21,72 @@ export default function Header() {
     try { await supabase?.auth.signOut(); } finally { location.href = "/"; }
   }
 
-return (
-  <header className="sticky top-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/10">
-    <div className="mx-auto max-w-[1140px] px-6">
-      <div className="h-16 flex items-center justify-between">
+  return (
+    <header className="sticky top-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/10">
+      <div className="mx-auto max-w-[1140px] px-6">
+        <div className="h-16 flex items-center justify-between gap-8">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-linear-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
               A
             </div>
             <span className="text-white/95 font-semibold tracking-[0.2px]">ArbiBase</span>
           </Link>
 
-          {/* Right: menu button */}
-          <div className="relative">
-            <button
-              onClick={() => setOpen((s) => !s)}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/90 hover:bg-white/10"
-            >
-              Menu <CaretDown size={16} weight="bold" />
-            </button>
+          {/* Main Navigation */}
+          <nav className="hidden md:flex items-center gap-1">
+            <NavLink href="/properties">Browse</NavLink>
+            <NavLink href="/requests">Requests</NavLink>
+            <NavLink href="/favorites">Favorites</NavLink>
+            <NavLink href="/dashboard">Dashboard</NavLink>
+          </nav>
 
-            {/* Dropdown */}
-            {open && (
-              <div
-                onMouseLeave={() => setOpen(false)}
-                className="absolute right-0 mt-2 w-56 rounded-xl border border-white/10 bg-[#0b141d]/95 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)] z-50"
-              >
-                <nav className="py-1">
-                  <MenuItem href="/" icon={<House size={16} />}>Home</MenuItem>
-                  <MenuItem href="/properties" icon={<Compass size={16} />}>Browse</MenuItem>
-                  <MenuItem href="/requests" icon={<ClipboardText size={16} />}>Requests</MenuItem>
-                  <MenuItem href="/favorites" icon={<Star size={16} />}>Favorites</MenuItem>
-                  <MenuItem href="/dashboard" icon={<Layout size={16} />}>Dashboard</MenuItem>
+          {/* Right side */}
+          <div className="flex items-center gap-3">
+            {/* Mobile menu */}
+            <div className="md:hidden">
+              <MobileMenu authed={authed} onSignOut={signOut} />
+            </div>
 
-                  <div className="my-1 h-px bg-white/10" />
-
-                  <MenuItem href="https://www.arbibase.com/pricing/" icon={<CreditCard size={16} />}>Pricing</MenuItem>
-                  <MenuItem href="https://www.arbibase.com/about-us" icon={<Info size={16} />}>About</MenuItem>
-                  <MenuItem href="https://www.arbibase.com/about-us#contact" icon={<Phone size={16} />}>Contact</MenuItem>
-
-                  {authed && (
-                    <>
+            {/* Desktop user menu */}
+            {authed && (
+              <div className="hidden md:block relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
+                >
+                  <User size={16} weight="bold" />
+                  <span className="text-white/90">Account</span>
+                </button>
+                
+                {userMenuOpen && (
+                  <div
+                    onMouseLeave={() => setUserMenuOpen(false)}
+                    className="absolute right-0 mt-2 w-48 rounded-xl border border-white/10 bg-[#0b141d]/95 backdrop-blur-xl shadow-lg"
+                  >
+                    <div className="py-1">
+                      <Link href="/account" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Profile</Link>
+                      <Link href="/billing" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Billing</Link>
                       <div className="my-1 h-px bg-white/10" />
                       <button
                         onClick={signOut}
-                        className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-white/90 hover:bg-white/5"
+                        className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-white/90 hover:bg-white/5"
                       >
-                        <SignOut size={16} /> Sign out
+                        <SignOut size={14} /> Sign out
                       </button>
-                    </>
-                  )}
-                </nav>
+                    </div>
+                  </div>
+                )}
               </div>
+            )}
+
+            {!authed && (
+              <Link
+                href="/login"
+                className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+              >
+                Sign in
+              </Link>
             )}
           </div>
         </div>
@@ -85,24 +95,57 @@ return (
   );
 }
 
-function MenuItem({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) {
-  const external = href.startsWith("http");
-  if (external) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer"
-        className="flex items-center gap-2 px-3 py-2 text-sm text-white/90 hover:bg-white/5"
-      >
-        {icon} {children}
-      </a>
-    );
-  }
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-2 px-3 py-2 text-sm text-white/90 hover:bg-white/5">
-      {icon} {children}
+    <Link
+      href={href}
+      className="rounded-lg px-3 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+    >
+      {children}
     </Link>
+  );
+}
+
+function MobileMenu({ authed, onSignOut }: { authed: boolean; onSignOut: () => void }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(!open)}
+        className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
+      >
+        Menu
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setOpen(false)} />
+          <div className="fixed right-4 top-20 z-50 w-56 rounded-xl border border-white/10 bg-[#0b141d] shadow-2xl">
+            <nav className="py-2">
+              <Link href="/properties" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Browse</Link>
+              <Link href="/requests" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Requests</Link>
+              <Link href="/favorites" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Favorites</Link>
+              <Link href="/dashboard" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Dashboard</Link>
+              
+              {authed && (
+                <>
+                  <div className="my-1 h-px bg-white/10" />
+                  <Link href="/account" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Profile</Link>
+                  <Link href="/billing" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Billing</Link>
+                  <button
+                    onClick={onSignOut}
+                    className="w-full text-left block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
+                  >
+                    Sign out
+                  </button>
+                </>
+              )}
+            </nav>
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
