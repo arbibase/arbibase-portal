@@ -108,7 +108,7 @@ export default function PortalHero() {
             <Card
               icon={<Gauge size={24} weight="duotone" />}
               title="Operator Dashboard"
-              desc="Command center for verified arbitrage operations — manage tasks, deals, team roles, and audit history in one place."
+              desc="Command center for verified arbitrage operations"
               accent="sky"
             />
 
