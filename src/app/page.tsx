@@ -1,4 +1,4 @@
-import PortalHero, { Inside } from "@/components/PortalHero";
+import PortalHero from "@/components/PortalHero";
 
 // src/app/page.tsx (header only)
 // Header is declared later in this file.
@@ -8,7 +8,6 @@ export default function Home() {
     <div className="min-h-screen bg-[#071019] text-white">
       <Header />
       <PortalHero />
-      <Inside />
       <footer className="border-t border-white/10 bg-[#0a141d] py-8">
         <div className="mx-auto flex max-w-[980px] items-center justify-between px-6 text-xs text-slate-400">
           <p>© {new Date().getFullYear()} ArbiBase. All rights reserved.</p>
