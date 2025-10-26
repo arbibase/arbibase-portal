@@ -219,5 +219,9 @@ function ShowcaseCard({
 }
 
 export const Inside = () => {
-  // your Inside component code
+  return (
+    <div>
+      {/* Your Inside component content */}
+    </div>
+  );
 };
