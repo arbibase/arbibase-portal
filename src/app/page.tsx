@@ -3,6 +3,8 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import Aurora from "@/components/Aurora";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "ArbiBase Portal — Sign in",
   description:
