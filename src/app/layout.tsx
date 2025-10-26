@@ -1,13 +1,15 @@
 import "@/app/globals.css";
 import Header from "@/components/Header";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh bg-[#071019] text-white">
-      <Header />
-      <main className="relative z-10">
-        {children}
-      </main>
-    </div>
+    <html lang="en">
+      <body className="min-h-dvh bg-[#071019] text-white antialiased">
+        <Header />
+        <main className="relative">
+          {children}
+        </main>
+      </body>
+    </html>
   );
 }

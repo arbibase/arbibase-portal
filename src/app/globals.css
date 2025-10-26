@@ -105,15 +105,6 @@ html, body {
 }
 
 /* Make sure the root elements always occupy height and never hide children */
-html, body, #__next {
+html, body {
   min-height: 100%;
-}
-
-/* Safe stacking defaults: content is z-10; we rarely exceed z-30 for sticky header */
-main { position: relative; z-index: 10; }
-
-/* Defensive: any accidental full-screen absolute element stays below */
-body > div[style*="position:fixed"],
-body > div[style*="position:absolute"] {
-  z-index: 0;
 }
