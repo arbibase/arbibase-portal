@@ -11,10 +11,10 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
 
   if (isProtectedRoute) {
-    // Check for Supabase auth cookies (they use different names)
-    const allCookies = request.cookies.getAll();
-    const hasAuthCookie = allCookies.some(cookie => 
-      cookie.name.includes('sb-') && cookie.name.includes('auth-token')
+    // Look for any Supabase auth cookie
+    const cookies = request.cookies.getAll();
+    const hasAuthCookie = cookies.some(cookie => 
+      cookie.name.startsWith('sb-') && cookie.name.includes('auth')
     );
 
     // If no auth cookie found, redirect to login
