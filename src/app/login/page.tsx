@@ -79,60 +79,57 @@ export default function LoginPage() {
           </p>
 
           {/* Form */}
-          <form onSubmit={signIn} className="mt-6 grid gap-3">
-            {/* Email */}
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300/70">
-                <EnvelopeSimple size={18} />
-              </span>
-              <input
-                className="input pl-10"
-                placeholder="Email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-label="Email address"
-              />
-            </div>
+<form onSubmit={signIn} className="mt-6 grid gap-3">
+  {/* Email */}
+  <div className="relative flex items-center">
+    <span className="absolute left-4 text-slate-300/70">
+      <EnvelopeSimple size={18} />
+    </span>
+    <input
+      className="input pl-11"
+      placeholder="Email"
+      type="email"
+      autoComplete="email"
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      aria-label="Email address"
+    />
+  </div>
 
-            {/* Password */}
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300/70">
-                <Lock size={18} />
-              </span>
-              <input
-                className="input pl-10 pr-10"
-                placeholder="Password"
-                type={showPwd ? "text" : "password"}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-label="Password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPwd((s) => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300/70 hover:text-white"
-                aria-label={showPwd ? "Hide password" : "Show password"}
-              >
-                <Eye size={18} />
-              </button>
-            </div>
+  {/* Password */}
+  <div className="relative flex items-center">
+    <span className="absolute left-4 text-slate-300/70">
+      <Lock size={18} />
+    </span>
+    <input
+      className="input pl-11 pr-10"
+      placeholder="Password"
+      type={showPwd ? "text" : "password"}
+      autoComplete="current-password"
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      aria-label="Password"
+    />
+    <button
+      type="button"
+      onClick={() => setShowPwd((s) => !s)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300/70 hover:text-white"
+      aria-label={showPwd ? "Hide password" : "Show password"}
+    >
+      <Eye size={18} />
+    </button>
+  </div>
 
-            {err && (
-              <div className="mt-1 text-sm text-rose-300">{err}</div>
-            )}
+  {err && <div className="mt-1 text-sm text-rose-300">{err}</div>}
 
-            <button
-              className="glow-in mt-2 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-300"
-              disabled={busy}
-              type="submit"
-            >
-              {busy ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
-
+  <button
+    className="glow-in mt-2 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-300"
+    disabled={busy}
+    type="submit"
+  >
+    {busy ? "Signing in…" : "Sign in"}
+  </button>
+</form>
           {/* Meta */}
           <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
             <span>Admin-only accounts. No self-signups.</span>
