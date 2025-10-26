@@ -32,73 +32,56 @@ export default function PortalHero() {
 
         <div className="relative z-10 mx-auto grid w-full max-w-[980px] place-items-center px-6 py-16 md:py-24">
           <div className="w-full max-w-[560px] rounded-2xl border border-white/10 bg-white/8 backdrop-blur-xl shadow-[0_20px_80px_-20px_rgba(0,0,0,.5)]">
-            <div className="p-8 md:p-10">
+<div className="p-8 md:p-10">
   {/* Verified Access */}
-<div className="mb-5 flex items-center justify-center gap-2 text-emerald-300 fade-up-1">
-  <LockSimple size={18} weight="bold" aria-hidden />
-  <span className="text-xs font-semibold uppercase tracking-wide">
-    Verified Access
-  </span>
+  <div className="mb-5 flex items-center justify-center gap-2 text-emerald-300 fade-up-1">
+    <LockSimple size={18} weight="bold" aria-hidden />
+    <span className="text-xs font-semibold uppercase tracking-wide">
+      Verified Access
+    </span>
+  </div>
+
+  {/* Title & Subtitle */}
+  <h1 className="text-center text-3xl font-extrabold leading-tight md:text-4xl fade-up-2">
+    ArbiBase Portal
+  </h1>
+  <p className="mt-3 text-center text-base text-slate-300/90 md:text-lg fade-up-3">
+    Secure access to your operator dashboard and tools for STR &amp; MTR arbitrage.
+  </p>
+
+  {/* Buttons (reduced top margin) */}
+  <div className="mt-6 flex justify-center gap-3 fade-up-4">
+    <Link
+      href="/login"
+      data-event="login-attempt"
+      className="glow-in inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,.28)] transition-all hover:bg-emerald-600 hover:shadow-[0_0_32px_rgba(16,185,129,.38)] focus-visible:ring-2 focus-visible:ring-emerald-300"
+    >
+      Enter Portal
+    </Link>
+
+    <a
+      href="#inside"
+      className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-sky-400"
+    >
+      Learn more
+    </a>
+  </div>
+
+  {/* Trust Chips */}
+  <div className="mt-5 grid grid-cols-1 gap-3 text-slate-300/85 sm:grid-cols-3 fade-up-5">
+    <Chip icon={<ShieldCheck size={16} />} label="SSO Ready" />
+    <Chip icon={<UsersThree size={16} />} label="Role-based Access" />
+    <Chip icon={<FileText size={16} />} label="Audit & Logs" />
+  </div>
+
+  <p className="mt-5 text-center text-[12px] text-slate-400">
+    Don’t have an account?{" "}
+    <span className="text-slate-300">
+      Accounts are created by your workspace administrator.
+    </span>
+  </p>
 </div>
-
-<h1 className="text-center text-3xl font-extrabold leading-tight md:text-4xl">
-  ArbiBase Portal
-</h1>
-<p className="mt-3 text-center text-base text-slate-300/90 md:text-lg">
-  Secure access to your operator dashboard and tools for STR &amp; MTR
-  arbitrage.
-</p><div className="mb-5 flex items-center justify-center gap-2 text-emerald-300">
-  <LockSimple size={18} weight="bold" aria-hidden />
-  <span className="text-xs font-semibold uppercase tracking-wide">
-    Verified Access
-  </span>
-</div>
-
-<h1 className="text-center text-3xl font-extrabold leading-tight md:text-4xl">
-  ArbiBase Portal
-</h1>
-<p className="mt-3 text-center text-base text-slate-300/90 md:text-lg">
-  Secure access to your operator dashboard and tools for STR &amp; MTR
-  arbitrage.
-</p>
-
-<div className="mt-8 flex justify-center gap-3 fade-up-4">
-  {/* CTAs */}
-</div>
-
-<div className="mt-6 grid grid-cols-1 gap-3 text-slate-300/85 sm:grid-cols-3 fade-up-5">
-  {/* Chips */}
-</div>
-              <div className="mt-8 flex justify-center gap-3">
-<Link
-  href="/login"
-  data-event="login-attempt"
-  className="glow-in inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,.28)] transition-all hover:bg-emerald-600 hover:shadow-[0_0_32px_rgba(16,185,129,.38)] focus-visible:ring-2 focus-visible:ring-emerald-300"
->
-  Enter Portal
-</Link>
-
-                <a
-                  href="#inside"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-sky-400"
-                >
-                  Learn more
-                </a>
-              </div>
-
-              {/* trust chips */}
-              <div className="mt-6 grid grid-cols-1 gap-3 text-slate-300/85 sm:grid-cols-3">
-                <Chip icon={<ShieldCheck size={16} />} label="SSO Ready" />
-                <Chip icon={<UsersThree size={16} />} label="Role-based Access" />
-                <Chip icon={<FileText size={16} />} label="Audit & Logs" />
-              </div>
-
-              <p className="mt-5 text-center text-[12px] text-slate-400">
-                Don’t have an account?{" "}
-                <span className="text-slate-300">Accounts are created by your workspace administrator.</span>
-              </p>
-            </div>
-          </div>
+        </div>
         </div>
       </section>
 

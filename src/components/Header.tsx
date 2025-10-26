@@ -18,10 +18,14 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-[#0A121A]/85 backdrop-blur supports-backdrop-filter:bg-[#0A121A]/70">
       <div className="mx-auto flex h-14 w-full max-w-[980px] items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/arbibase-mark.svg" alt="ArbiBase" width={28} height={28} priority />
-          <Image src="/arbibase-type.svg" alt="ArbiBase" width={96} height={20} priority className="hidden sm:block" />
-        </Link>
+<Link href="/" className="flex items-center gap-2">
+  <img
+    src="/arbibase-logo.svg"
+    alt="ArbiBase Logo"
+    className="h-6 w-auto object-contain"
+  />
+</Link>
+
 
         {/* Desktop nav */}
         <nav className="hidden gap-6 text-sm text-slate-200 md:flex">
