@@ -39,6 +39,7 @@ export default function Header() {
             <NavLink href="/requests">Requests</NavLink>
             <NavLink href="/favorites">Favorites</NavLink>
             <NavLink href="/dashboard">Dashboard</NavLink>
+            <NavLink href="/contact">Contact</NavLink>
           </nav>
 
           {/* Right side */}
@@ -127,6 +128,7 @@ function MobileMenu({ authed, onSignOut }: { authed: boolean; onSignOut: () => v
               <Link href="/requests" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Requests</Link>
               <Link href="/favorites" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Favorites</Link>
               <Link href="/dashboard" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Dashboard</Link>
+              <Link href="/contact" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">Contact</Link>
               
               {authed && (
                 <>
@@ -148,4 +150,5 @@ function MobileMenu({ authed, onSignOut }: { authed: boolean; onSignOut: () => v
     </>
   );
 }
+
 
