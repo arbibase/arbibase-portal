@@ -205,42 +205,46 @@ export default function Dashboard() {
 
   if (loading) return <div className="p-10 text-center fine">Loading…</div>;
 
-  return (
-    <main className="container" style={{ display: "grid", gap: 18 }}>
-      {/* ===== Header ===== */}
-      <section
-        className="surface"
-        style={{
-          padding: 20,
-          borderRadius: "var(--rad-lg)",
-          background: "linear-gradient(180deg,#0b1017 0%,#0c131e 100%)",
-          boxShadow: "0 0 40px rgba(0,225,255,.08)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <div>
-            <span className="pill">Hey {firstName} 👋</span>
-            <h1 style={{ margin: "6px 0 4px" }}>Your Operator Dashboard</h1>
-            <p className="fine" style={{ color: "var(--muted)" }}>
-              Manage properties, track verifications, and view your latest opportunities.
-            </p>
+return (
+  <main className="mx-auto max-w-[1140px] px-6 pb-14" style={{ display: "grid", gap: 18 }}>
+    {/* ===== Glass Hero ===== */}
+    <section
+      className="rounded-2xl border border-white/10 bg-white/6 backdrop-blur-xl shadow-[0_20px_80px_-20px_rgba(0,0,0,.65)]"
+      style={{ padding: 20 }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="mb-1 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-400/30">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            Verified Access
           </div>
-
-          {/* “Cool buttons” */}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link
-              className="btn primary"
-              href="/properties"
-              style={{ background: `linear-gradient(135deg,${BRAND.primary},${BRAND.accent})`, color: "#041018" }}
-            >
-              <Compass size={16} /> Browse Properties
-            </Link>
-            <Link className="btn" href="/request-verification" style={{ borderColor: "var(--line)" }}>
-              <Sparkles size={16} /> New Request
-            </Link>
-          </div>
+          <h1 className="mt-1 mb-1 text-2xl font-extrabold">Hey {firstName} 👋</h1>
+          <p className="text-sm text-white/70">
+            Manage properties, track verifications, and view your latest opportunities.
+          </p>
         </div>
-      </section>
+
+        {/* Gradient CTAs */}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/properties"
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-[#041018]"
+            style={{
+              background: "linear-gradient(135deg,#00e1ff,#3b82f6)",
+              boxShadow: "0 0 24px rgba(0,225,255,.25)",
+            }}
+          >
+            Browse Properties
+          </Link>
+          <Link
+            href="/request-verification"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/90 hover:bg-white/10"
+          >
+            New Request
+          </Link>
+        </div>
+      </div>
+    </section>
 
       {/* ===== KPIs ===== */}
       <section className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16 }}>
