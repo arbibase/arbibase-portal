@@ -1,84 +1,114 @@
 "use client";
 
-import { motion, cubicBezier } from "framer-motion";
-import { Home, Search, Star, User } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import Aurora from "@/components/Aurora";
 
-const easeOutExpo = cubicBezier(0.16, 1, 0.3, 1);
+const fadeUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, ease: "easeOut" as const },
+};
 
-export default function HomePage() {
+export default function Home() {
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center bg-linear-to-tr from-[#04101c] via-[#0b1624] to-[#101c2c] text-white overflow-hidden">
-      {/* BACKGROUND */}
-      <div className="absolute inset-0 -z-10">
-        <Aurora opacity={0.35} speed={0.4} blur={140} />
-        <div className="absolute inset-0 opacity-50 mix-blend-screen pointer-events-none">
-        </div>
-      </div>
+    <main className="relative min-h-svh bg-[#0b121a] text-white overflow-hidden">
+      {/* Soft animated background */}
+      <Aurora />
 
-      {/* HEADER */}
-      <motion.header
-        initial={{ opacity: 0, y: -25 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: easeOutExpo }}
-        className="fixed top-0 left-0 right-0 z-40 flex justify-between items-center px-10 py-5 backdrop-blur-xl bg-[#060d17]/60 border-b border-[#1e2733]"
-      >
-        <h1 className="text-2xl font-extrabold tracking-wide bg-linear-to-r from-sky-300 via-cyan-400 to-blue-600 bg-clip-text text-transparent">
-          ArbiBase <span className="text-[#9ab1c7] font-medium">Portal</span>
-        </h1>
+      {/* Top bar with logo + website links */}
+      <header className="relative z-10 flex items-center justify-between max-w-6xl mx-auto px-6 py-5">
+        <Link
+          href="https://arbibase.com"
+          target="_blank"
+          className="flex items-center gap-3"
+          aria-label="ArbiBase website"
+        >
+          {/* If you have an SVG in /public, this will render. Otherwise it silently keeps the text mark. */}
+          <div className="h-7 w-7 relative">
+            <Image
+              src="/arbibase-logo.svg"
+              alt="ArbiBase"
+              fill
+              className="object-contain"
+              sizes="28px"
+              priority
+            />
+          </div>
+          <span className="text-lg font-semibold tracking-tight">ArbiBase</span>
+        </Link>
 
-        <nav className="flex space-x-3 text-sm">
-          <a href="/properties" className="flex items-center px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition">
-            <Search className="h-5 w-5 mr-2 text-cyan-400" /> Browse
-          </a>
-          <a href="/favorites" className="flex items-center px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition">
-            <Star className="h-5 w-5 mr-2 text-yellow-300" /> Favorites
-          </a>
-          <a href="/login" className="flex items-center px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition">
-            <User className="h-5 w-5 mr-2 text-sky-300" /> Login
-          </a>
+        <nav className="hidden sm:flex items-center gap-5 text-sm text-gray-300">
+          <Link href="https://arbibase.com" target="_blank" className="hover:text-white">
+            Website
+          </Link>
+          <Link href="https://arbibase.com/pricing" target="_blank" className="hover:text-white">
+            Pricing
+          </Link>
+          <Link href="https://arbibase.com/contact" target="_blank" className="hover:text-white">
+            Contact
+          </Link>
         </nav>
-      </motion.header>
+      </header>
 
-      {/* HERO */}
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: easeOutExpo }}
-        className="flex flex-col items-center justify-center text-center px-6 pt-32 md:pt-40"
-      >
-        <Home className="h-20 w-20 mb-6 text-cyan-400 opacity-80 drop-shadow-[0_0_14px_rgba(0,180,255,0.5)]" />
-        <h2 className="text-5xl md:text-6xl font-bold mb-4 leading-tight bg-linear-to-r from-cyan-400 via-sky-500 to-blue-600 bg-clip-text text-transparent">
-          The Verified Property Layer for Arbitrage
-        </h2>
-        <p className="text-gray-300 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mt-2">
-          Access a nationwide database of pre-approved, arbitrage-friendly properties verified for STR and MTR operations.
-        </p>
-        <div className="flex justify-center mt-10 gap-4">
-          <a
-            href="/properties"
-            className="px-8 py-3 rounded-full text-base font-semibold bg-linear-to-r from-sky-500 to-cyan-400 hover:from-sky-400 hover:to-cyan-300 shadow-[0_0_25px_rgba(0,200,255,0.25)] transition-all"
+      {/* Centered hero */}
+      <section className="relative z-10 max-w-3xl mx-auto pt-10 sm:pt-16 pb-20 px-6 text-center">
+        <motion.h1
+          {...fadeUp}
+          className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight"
+        >
+          ArbiBase Portal
+        </motion.h1>
+
+        <motion.p
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: 0.07 }}
+          className="mt-3 text-base sm:text-lg text-gray-300"
+        >
+          Secure access to your operator dashboard and tools.
+        </motion.p>
+
+        <motion.div
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: 0.14 }}
+          className="mt-8 flex items-center justify-center gap-3"
+        >
+          <Link
+            href="/login"
+            className="inline-flex items-center rounded-full bg-[#1a73e8] px-5 py-2.5 text-sm font-semibold shadow-md hover:shadow-lg hover:bg-[#1b66c9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1a73e8] transition"
           >
-            Browse Properties →
-          </a>
-          <a
-            href="/about"
-            className="px-8 py-3 rounded-full text-base font-semibold border border-white/20 hover:bg-white/10 transition-all"
-          >
-            Learn More
-          </a>
+            Login
+          </Link>
+        </motion.div>
+
+        <motion.p
+          {...fadeUp}
+          transition={{ ...fadeUp.transition, delay: 0.22 }}
+          className="mt-4 text-xs text-gray-400"
+        >
+          Don’t have an account?&nbsp;
+          <span className="text-gray-300">Please contact your workspace administrator.</span>
+        </motion.p>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-white/5">
+        <div className="max-w-6xl mx-auto px-6 py-5 text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>© {new Date().getFullYear()} ArbiBase. All rights reserved.</span>
+          <div className="flex items-center gap-4">
+            <Link href="https://arbibase.com/terms" target="_blank" className="hover:text-white">
+              Terms
+            </Link>
+            <Link href="https://arbibase.com/privacy" target="_blank" className="hover:text-white">
+              Privacy
+            </Link>
+            <Link href="https://status.arbibase.com" target="_blank" className="hover:text-white">
+              Status
+            </Link>
+          </div>
         </div>
-      </motion.section>
-
-      {/* FOOTER */}
-      <motion.footer
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: easeOutExpo }}
-        className="absolute bottom-0 left-0 right-0 py-4 text-center text-sm text-gray-400 bg-[#050b14]/70 backdrop-blur-xl border-t border-[#1e2733]"
-      >
-        © {new Date().getFullYear()} ArbiBase. All Rights Reserved.
-      </motion.footer>
-    </div>
+      </footer>
+    </main>
   );
 }
