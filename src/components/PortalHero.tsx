@@ -20,15 +20,15 @@ export default function PortalHero() {
     <>
       {/* -------- Hero with CSS background (can’t disappear) -------- */}
       <section
-        className="relative isolate flex min-h-[85vh] flex-col items-center justify-center overflow-hidden text-white"
+        className="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden text-white"
         style={{
           backgroundImage: `linear-gradient(to bottom right, rgba(7,16,25,.72), rgba(7,16,25,.92)), url(${bg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="pointer-events-none absolute -top-16 -right-24 h-104 w-104 rounded-full bg-emerald-500/15 blur-[120px]" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 h-80 w-80 rounded-full bg-sky-500/15 blur-[100px]" />
+        <div className="pointer-events-none absolute -top-16 -right-24 h-104 w-104 rounded-full bg-emerald-500/15 blur-[120px] -z-10" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 h-80 w-80 rounded-full bg-sky-500/15 blur-[100px] -z-10" />
 
         <div className="relative z-10 mx-auto grid w-full max-w-[980px] place-items-center px-6 py-16 md:py-24">
           <div className="w-full max-w-[560px] rounded-2xl border border-white/10 bg-white/8 backdrop-blur-xl shadow-[0_20px_80px_-20px_rgba(0,0,0,.5)]">

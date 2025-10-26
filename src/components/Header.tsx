@@ -25,9 +25,9 @@ export default function Header() {
   }
 
 return (
-  <header className="sticky top-0 z-30 bg-black/50 backdrop-blur-md border-b border-white/10">
+  <header className="sticky top-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/10">
     <div className="mx-auto max-w-[1140px] px-6">
-      <div className="h-14 flex items-center justify-between">
+      <div className="h-16 flex items-center justify-between">
           {/* Logo (kept away from the chrome edge via container padding) */}
           <Link href="/" className="flex items-center gap-2">
             <Image
@@ -53,7 +53,7 @@ return (
             {open && (
               <div
                 onMouseLeave={() => setOpen(false)}
-                className="absolute right-0 mt-2 w-56 rounded-xl border border-white/10 bg-[#0b141d]/95 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)]"
+                className="absolute right-0 mt-2 w-56 rounded-xl border border-white/10 bg-[#0b141d]/95 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)] z-50"
               >
                 <nav className="py-1">
                   <MenuItem href="/" icon={<House size={16} />}>Home</MenuItem>

@@ -109,10 +109,8 @@ html, body {
   min-height: 100%;
 }
 
-/* Stability: never let random fixed overlays eclipse the UI */
-html, body, #__next { min-height: 100%; }
-main { position: relative; z-index: 10; }
-
-/* Hide any accidental full-screen fixed mounts unless intended */
-body > div[style*="position:fixed"][style*="inset: 0"] { z-index: 0; }
+/* Z-index hierarchy */
+header { z-index: 50 !important; }
+main { position: relative; z-index: 1; }
+section { position: relative; z-index: auto; }
 
