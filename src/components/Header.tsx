@@ -24,10 +24,10 @@ export default function Header() {
     try { await supabase?.auth.signOut(); } finally { location.href = "/"; }
   }
 
-  return (
-    <header className="fixed inset-x-0 top-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/10">
-      <div className="mx-auto max-w-[1140px] px-6">
-        <div className="h-14 flex items-center justify-between">
+return (
+  <header className="sticky top-0 z-30 bg-black/50 backdrop-blur-md border-b border-white/10">
+    <div className="mx-auto max-w-[1140px] px-6">
+      <div className="h-14 flex items-center justify-between">
           {/* Logo (kept away from the chrome edge via container padding) */}
           <Link href="/" className="flex items-center gap-2">
             <Image
@@ -109,3 +109,4 @@ function MenuItem({ href, icon, children }: { href: string; icon: React.ReactNod
     </Link>
   );
 }
+
