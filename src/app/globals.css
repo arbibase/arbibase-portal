@@ -115,3 +115,5 @@ input[type="text"], input[type="number"], select {
 
 /* Map + List container clarity */
 .container .fine { color:#a6b3c3; font-size: 0.95rem; }
+
+.debug * { outline: 1px dashed rgba(255,255,255,.2); }

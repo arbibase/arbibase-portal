@@ -1,20 +1,4 @@
-// Inline Header fallback to avoid missing ../components/Header module
-const Header = () => {
-  return (
-    <header className="mx-auto max-w-[980px] px-6 py-6">
-      <div className="flex items-center justify-between">
-        <a href="/" className="font-semibold text-lg">ArbiBase</a>
-        <nav className="flex gap-4 text-sm text-slate-300">
-          <a href="/about" className="hover:text-white">About</a>
-          <a href="/pricing" className="hover:text-white">Pricing</a>
-          <a href="/contact" className="hover:text-white">Contact</a>
-        </nav>
-      </div>
-    </header>
-  );
-};
-import PortalHero from "../components/PortalHero";
-import { Inside } from "../components/PortalHero"; // if you put Inside in same file, export it
+import PortalHero, { Inside } from "@/components/PortalHero";
 
 export default function Home() {
   return (
@@ -35,3 +19,19 @@ export default function Home() {
     </div>
   );
 }
+
+const Header = () => {
+  return (
+    <header className="mx-auto max-w-[980px] px-6 py-6">
+      <div className="flex items-center justify-between">
+        <a href="/" className="font-semibold text-lg">ArbiBase</a>
+        <nav className="flex gap-4 text-sm text-slate-300">
+          <a href="/about" className="hover:text-white">About</a>
+          <a href="/pricing" className="hover:text-white">Pricing</a>
+          <a href="/contact" className="hover:text-white">Contact</a>
+        </nav>
+      </div>
+    </header>
+  );
+};
+
