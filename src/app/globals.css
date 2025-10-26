@@ -1,47 +1,49 @@
-/* Tailwind core – correct order */
-@import "tailwindcss/base";
-@tailwind utilities;
+/* Tailwind v4 core */
+@import "tailwindcss";
 
-/* Design tokens (you already have this file) */
+/* Your design tokens */
 @import "../styles/tokens.css";
 
-/* ---- Base tweaks kept inside Tailwind layers ---- */
-@layer base {
-  html, body {
-    background: var(--bg);
-    color: var(--ink);
-    color-scheme: dark;
-  }
+/* Base tweaks */
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  color-scheme: dark;
 }
 
-/* Component-level helpers that won't fight utilities */
-@layer components {
-  .card {
-    @apply rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)];
-  }
-  .btn {
-    @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold;
-  }
-  .btn-primary {
-    @apply btn bg-emerald-500 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300;
-  }
-  .btn-ghost {
-    @apply btn border border-white/15 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400;
-  }
-  .input {
-    @apply w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/40 outline-none focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/30;
-  }
+/* Component helpers (no @layer needed in v4) */
+.card {
+  @apply rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)];
 }
 
-/* Utilities specific to map container (kept, no collisions) */
+.btn {
+  @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold;
+}
+
+.btn-primary {
+  @apply btn bg-emerald-500 text-white shadow-lg shadow-emerald-900/30
+         hover:bg-emerald-600 focus-visible:outline-none
+         focus-visible:ring-2 focus-visible:ring-emerald-300;
+}
+
+.btn-ghost {
+  @apply btn border border-white/15 bg-white/5 text-white/90
+         hover:bg-white/10 focus-visible:outline-none
+         focus-visible:ring-2 focus-visible:ring-sky-400;
+}
+
+.input {
+  @apply w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm
+         text-white placeholder-white/40 outline-none
+         focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/30;
+}
+
+/* Map & layout utilities (plain CSS is fine) */
 .map-wrap { height: 520px; width: 100%; position: relative; z-index: 1; }
 .gm-style { font-family: inherit; }
 .map-wrap * { pointer-events: auto; }
 
-/* Optional responsive helpers you already used */
-.card-grid-5{
-  display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0,1fr));
-}
-@media (min-width: 820px){ .card-grid-5{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
-@media (min-width: 1080px){ .card-grid-5{ grid-template-columns: repeat(4, minmax(0,1fr)); } }
-@media (min-width: 1280px){ .card-grid-5{ grid-template-columns: repeat(5, minmax(0,1fr)); } }
+.card-grid-5 { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+@media (min-width: 820px)  { .card-grid-5 { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (min-width: 1080px) { .card-grid-5 { grid-template-columns: repeat(4, minmax(0,1fr)); } }
+@media (min-width: 1280px) { .card-grid-5 { grid-template-columns: repeat(5, minmax(0,1fr)); } }
