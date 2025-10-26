@@ -9,6 +9,8 @@ export const metadata = {
     "Secure access to the ArbiBase operator portal. Accounts are provisioned by administrators.",
 };
 
+// IMPORTANT: avoid rendering client/Motion code on the server
+
 export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#071019] text-white">
