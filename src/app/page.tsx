@@ -1,5 +1,8 @@
 import PortalHero, { Inside } from "@/components/PortalHero";
 
+// src/app/page.tsx (header only)
+// Header is declared later in this file.
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#071019] text-white">

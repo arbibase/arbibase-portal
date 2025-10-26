@@ -1,119 +1,47 @@
+/* Tailwind core – correct order */
 @import "tailwindcss/preflight";
 @tailwind utilities;
 
-/* Your existing custom CSS variables and styles below */
-:root{
-  --bg:#0c0f14; --surface:#11161e; --panel:#141b24; --panel-2:#0f141c;
-  --border:#242c38; --head:#f6fbff; --text:#e6eef7; --muted:#9aa5b1;
-  --accent:#00c8ff;
+/* Design tokens (you already have this file) */
+@import "../styles/tokens.css";
+
+/* ---- Base tweaks kept inside Tailwind layers ---- */
+@layer base {
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    color-scheme: dark;
+  }
 }
 
-html,body{ background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
-a{ color:var(--accent) }
-
-.card{ background:var(--panel); border:1px solid var(--border); border-radius:16px; }
-.btn{ display:inline-flex; align-items:center; gap:.5rem; padding:.55rem .9rem; border-radius:12px; border:1px solid #2a3340; background:#0f141b; color:var(--head); font-weight:700; text-decoration:none }
-.btn-primary{ background:linear-gradient(180deg,var(--accent),#04a7d6); color:#05232e; border-color:#069bbf; }
-
-/* Map container fixes */
-.map-wrap { 
-  height: 520px; 
-  width: 100%; 
-  position: relative;
-  z-index: 1;
+/* Component-level helpers that won't fight utilities */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)];
+  }
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold;
+  }
+  .btn-primary {
+    @apply btn bg-emerald-500 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300;
+  }
+  .btn-ghost {
+    @apply btn border border-white/15 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400;
+  }
+  .input {
+    @apply w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/40 outline-none focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/30;
+  }
 }
 
-.gm-style { 
-  font-family: inherit; 
-}
+/* Utilities specific to map container (kept, no collisions) */
+.map-wrap { height: 520px; width: 100%; position: relative; z-index: 1; }
+.gm-style { font-family: inherit; }
+.map-wrap * { pointer-events: auto; }
 
-/* Ensure map container doesn't have pointer-events disabled */
-.map-wrap * {
-  pointer-events: auto;
-}
-
-/* Base */
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.55;color-scheme:dark}
-a{color:#fff;text-decoration:none;text-decoration-color:rgba(255,255,255,.35)}
-a:hover{text-decoration-color:rgba(255,255,255,.85)}
-img{max-width:100%;display:block}
-.container{max-width:var(--max);margin:0 auto;padding:0 20px}
-
-/* App surfaces */
-.card, .surface{
-  background:var(--surfaceA);
-  border:1px solid var(--line);
-  border-radius:var(--rad-lg);
-  box-shadow:var(--shadow-1);
-}
-
-.btn{display:inline-flex;align-items:center;gap:10px;font-weight:700;
-  padding:10px 14px;border-radius:999px;border:1px solid var(--line);
-  color:#fff;background:linear-gradient(180deg,#121824,#0e141f);transition:transform .18s ease, box-shadow .18s ease}
-.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-1)}
-.btn.primary{border-color:#0a6a85;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#041018;box-shadow:0 10px 26px rgba(0,225,255,.22)}
-
-.input, select{
-  width:100%;padding:10px 12px;border-radius:12px;border:1px solid #253141;background:#0c121a;color:#fff;
-}
-
-.badge{display:inline-flex;gap:6px;background:#0e1822;border:1px solid #203346;color:#9adcf9;
-  padding:4px 10px;border-radius:999px;font-size:.78rem}
-.pill{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border-radius:999px;font-size:.86rem;
-  font-weight:800;background:#0f1824;border:1px solid #203142;color:#bdeaff}
-.hr{height:1px;background:var(--line);margin:12px 0}
-
-/* 5-col responsive gallery for property cards */
+/* Optional responsive helpers you already used */
 .card-grid-5{
-  display:grid;
-  gap:16px;
-  grid-template-columns:repeat(2, minmax(0, 1fr));
+  display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0,1fr));
 }
-@media (min-width: 820px){
-  .card-grid-5{ grid-template-columns:repeat(3, minmax(0, 1fr)); }
-}
-@media (min-width: 1080px){
-  .card-grid-5{ grid-template-columns:repeat(4, minmax(0, 1fr)); }
-}
-@media (min-width: 1280px){
-  .card-grid-5{ grid-template-columns:repeat(5, minmax(0, 1fr)); }
-}
-
-/* Google map container + skeleton */
-.gmap { width: 100%; height: 100%; position: relative; }
-.gmap.skeleton { height: 100%; background: #0f141c; border-radius: 16px; }
-
-/* Compact search inputs */
-input[type="text"], input[type="number"], select {
-  outline: none;
-}
-
-@media (max-width: 1280px) {
-  /* On smaller screens show 3 columns, then 2, then 1 */
-  .container .grid[style*="repeat(5"] { grid-template-columns: repeat(3, minmax(0,1fr)) !important; }
-}
-@media (max-width: 900px) {
-  .container .grid[style*="repeat(5"] { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
-}
-@media (max-width: 640px) {
-  .container .grid[style*="repeat(5"] { grid-template-columns: repeat(1, minmax(0,1fr)) !important; }
-}
-
-/* search bar refinements */
-.search-rail input,
-.search-rail select {
-  height: 40px;
-  font-size: 14px;
-}
-
-.search-rail .btn.primary {
-  height: 40px;
-  padding: 0 14px;
-}
-
-/* Map + List container clarity */
-.container .fine { color:#a6b3c3; font-size: 0.95rem; }
-
-.debug * { outline: 1px dashed rgba(255,255,255,.2); }
+@media (min-width: 820px){ .card-grid-5{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (min-width: 1080px){ .card-grid-5{ grid-template-columns: repeat(4, minmax(0,1fr)); } }
+@media (min-width: 1280px){ .card-grid-5{ grid-template-columns: repeat(5, minmax(0,1fr)); } }

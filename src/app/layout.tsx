@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 import "./globals.css";
 import { Inter } from "next/font/google";
 
@@ -16,9 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           async
           defer
           src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-        ></script>
+        />
       </head>
-      <body className="font-(--font-inter) bg-[#071019] text-white antialiased">
+      <body className="bg-[#071019] text-white antialiased [font-family:var(--font-inter)]">
         {children}
       </body>
     </html>
