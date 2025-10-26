@@ -3,13 +3,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import Aurora from "@/components/Aurora";
+import Aurora from "@/components/Aurora"; // make sure this file also starts with "use client"
 
 export default function PortalHero() {
   return (
     <div className="relative min-h-screen bg-[#071019] text-white">
       {/* Background */}
-      <Aurora className="absolute inset-0 -z-10 pointer-events-none opacity-70" />
+      <div className="absolute inset-0 -z-10 pointer-events-none">
+        <Aurora {...({ opacity: 0.7 } as any)} />
+      </div>
 
       {/* Header */}
       <header className="mx-auto flex w-full max-w-[1100px] items-center justify-between px-6 py-6">
@@ -30,7 +32,7 @@ export default function PortalHero() {
         <nav className="hidden md:flex items-center gap-6 text-sm text-slate-300">
           <Link href="https://arbibase.com" className="hover:text-white">Website</Link>
           <Link href="https://arbibase.com/pricing" className="hover:text-white">Pricing</Link>
-          <Link href="https://arbibase.com/contact" className="hover:text-white">Contact</Link>
+          <Link href="https://arbibase.com/about-us" className="hover:text-white">Contact</Link>
         </nav>
       </header>
 
@@ -75,19 +77,14 @@ export default function PortalHero() {
               </p>
 
               <div className="mt-8 grid grid-cols-1 gap-3 text-[11px] text-slate-400/90 md:grid-cols-3">
-                <div className="rounded-lg border border-[#162332] bg-[#0b141d] px-3 py-2 text-center">
-                  SSO Ready
-                </div>
-                <div className="rounded-lg border border-[#162332] bg-[#0b141d] px-3 py-2 text-center">
-                  Role-Based Access
-                </div>
-                <div className="rounded-lg border border-[#162332] bg-[#0b141d] px-3 py-2 text-center">
-                  Audit & Logs
-                </div>
+                <div className="rounded-lg border border-[#162332] bg-[#0b141d] px-3 py-2 text-center">SSO Ready</div>
+                <div className="rounded-lg border border-[#162332] bg-[#0b141d] px-3 py-2 text-center">Role-Based Access</div>
+                <div className="rounded-lg border border-[#162332] bg-[#0b141d] px-3 py-2 text-center">Audit & Logs</div>
               </div>
             </div>
           </div>
 
+          {/* Footer row */}
           <div className="mt-6 flex items-center justify-center gap-4 text-xs text-slate-400">
             <Link href="https://arbibase.com/terms" className="hover:text-white">Terms</Link>
             <span className="opacity-30">•</span>
