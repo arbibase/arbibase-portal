@@ -131,7 +131,7 @@ export default function PropertyDetailClient({ property: p }: { property: Proper
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
-                  className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg transition-all ${
+                  className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-lg transition-all ${
                     currentImageIndex === index
                       ? "ring-2 ring-emerald-400 ring-offset-2 ring-offset-[#071019]"
                       : "opacity-60 hover:opacity-100"
@@ -201,7 +201,7 @@ export default function PropertyDetailClient({ property: p }: { property: Proper
           </section>
 
           {/* CTA Section */}
-          <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-sky-500/10 p-6">
+          <section className="rounded-2xl border border-white/10 bg-linear-to-br from-emerald-500/10 to-sky-500/10 p-6">
             <h3 className="mb-2 text-lg font-semibold text-white">Interested in this property?</h3>
             <p className="mb-4 text-sm text-white/70">
               Contact our team to schedule a viewing or get more information.
@@ -236,7 +236,7 @@ export default function PropertyDetailClient({ property: p }: { property: Proper
               </div>
               <div className="mt-3 space-y-1">
                 <p className="flex items-start gap-2 text-sm text-white/80">
-                  <MapPin size={16} className="mt-0.5 flex-shrink-0 text-emerald-400" />
+                  <MapPin size={16} className="mt-0.5 shrink-0 text-emerald-400" />
                   <span>{p.address}</span>
                 </p>
                 <button

@@ -25,7 +25,7 @@ export default function SpotlightCarousel({ items }: { items: SpotlightCard[] })
             {p.photo ? (
               <img src={p.photo} alt={p.name} className="h-40 w-full object-cover" />
             ) : (
-              <div className="h-40 w-full bg-linear-to-br from-sky-800/40 to-emerald-800/40" />
+              <div className="h-40 w-full bg-gradient-to-br from-sky-800/40 to-emerald-800/40" />
             )}
             <div className="p-4">
               <div className="mb-1 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-400/30">
@@ -49,8 +49,8 @@ export default function SpotlightCarousel({ items }: { items: SpotlightCard[] })
       </div>
 
       {/* arrows (optional) */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-linear-to-r from-[#071019] to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-[#071019] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[#071019] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#071019] to-transparent" />
     </div>
   );
 }

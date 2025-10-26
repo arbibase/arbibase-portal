@@ -165,7 +165,7 @@ function Card({
   return (
 <article
   className={`group relative overflow-hidden rounded-2xl border ${theme}
-  bg-linear-to-b from-[#0b1822] to-[#0b1822]/70
+  bg-gradient-to-b from-[#0b1822] to-[#0b1822]/70
   p-5 transition-all duration-300
   hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(255,255,255,0.06)] fade-up`}
 >

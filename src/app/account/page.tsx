@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   User as UserIcon,
   Lock,
@@ -20,7 +21,11 @@ import {
 import { supabase } from "@/lib/supabase";
 
 export default function AccountPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState<string>("");
   
   const [userProfile, setUserProfile] = useState({
     fullName: "John Doe",
@@ -46,20 +51,140 @@ export default function AccountPage() {
     weeklyReports: true
   });
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Load user data
+  useEffect(() => {
+    async function loadUserData() {
+      if (!supabase) {
+        router.push('/login');
+        return;
+      }
+
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error || !user) {
+          router.push('/login');
+          return;
+        }
+
+        setUserId(user.id);
+        setUserProfile({
+          fullName: user.user_metadata?.full_name || "",
+          email: user.email || "",
+          phone: user.user_metadata?.phone || "",
+          profilePicture: user.user_metadata?.profile_picture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=256&h=256&fit=crop",
+          company: user.user_metadata?.company || ""
+        });
+
+        // Load notification preferences if stored in user_metadata
+        if (user.user_metadata?.notifications) {
+          setPermissions(user.user_metadata.notifications);
+        }
+      } catch (err) {
+        console.error('Error loading user data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUserData();
+  }, [router]);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Add your update logic here
-    alert("Profile updated successfully!");
+    if (!supabase || !userId) return;
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: userProfile.email,
+        data: {
+          full_name: userProfile.fullName,
+          phone: userProfile.phone,
+          profile_picture: userProfile.profilePicture
+        }
+      });
+
+      if (error) throw error;
+
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to update profile' });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handlePasswordUpdate = (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabase) return;
+
     if (securitySettings.newPassword !== securitySettings.confirmPassword) {
-      alert("Passwords don't match!");
+      setMessage({ type: 'error', text: "Passwords don't match!" });
       return;
     }
-    // Add your password update logic here
-    alert("Password updated successfully!");
+
+    if (securitySettings.newPassword.length < 6) {
+      setMessage({ type: 'error', text: "Password must be at least 6 characters long" });
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: securitySettings.newPassword
+      });
+
+      if (error) throw error;
+
+      setMessage({ type: 'success', text: 'Password updated successfully!' });
+      setSecuritySettings({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+        showPassword: false,
+        twoFactorEnabled: securitySettings.twoFactorEnabled
+      });
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Error updating password:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to update password' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNotificationUpdate = async () => {
+    if (!supabase || !userId) return;
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          notifications: permissions
+        }
+      });
+
+      if (error) throw error;
+
+      setMessage({ type: 'success', text: 'Notification preferences updated!' });
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Error updating notifications:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to update preferences' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +192,11 @@ export default function AccountPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setUserProfile({ ...userProfile, profilePicture: reader.result as string });
+        setUserProfile({ 
+          ...userProfile, 
+          profilePicture: reader.result as string,
+          company: userProfile.company // preserve company field
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -75,7 +204,9 @@ export default function AccountPage() {
 
   async function handleSignOut() {
     try {
-      await supabase?.auth.signOut();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
     } finally {
       window.location.href = "/";
     }
@@ -86,7 +217,6 @@ export default function AccountPage() {
       case "profile":
         return (
           <div className="space-y-6">
-            {/* Profile Picture */}
             <div className="flex items-center gap-4">
               <img
                 src={userProfile.profilePicture}
@@ -114,7 +244,6 @@ export default function AccountPage() {
               </div>
             </div>
 
-            {/* Profile Form */}
             <form onSubmit={handleProfileUpdate} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -155,7 +284,7 @@ export default function AccountPage() {
                 </div>
               </div>
               <button type="submit" className="btn-primary w-full">
-                <FloppyDisk size={16} /> Save Changes
+                <FloppyDisk size={16} className="inline mr-2" /> Save Changes
               </button>
             </form>
           </div>
@@ -164,7 +293,6 @@ export default function AccountPage() {
       case "security":
         return (
           <div className="space-y-6">
-            {/* Password Change */}
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
               <h3 className="mb-4 text-lg font-semibold text-white">Change Password</h3>
               <form onSubmit={handlePasswordUpdate} className="space-y-4">
@@ -174,12 +302,20 @@ export default function AccountPage() {
                     <input
                       type={securitySettings.showPassword ? "text" : "password"}
                       value={securitySettings.currentPassword}
-                      onChange={(e) => setSecuritySettings({ ...securitySettings, currentPassword: e.target.value })}
+                      onChange={(e) => setSecuritySettings({ 
+                        ...securitySettings, 
+                        currentPassword: e.target.value,
+                        twoFactorEnabled: securitySettings.twoFactorEnabled // preserve field
+                      })}
                       className="input pr-10"
                     />
                     <button
                       type="button"
-                      onClick={() => setSecuritySettings({ ...securitySettings, showPassword: !securitySettings.showPassword })}
+                      onClick={() => setSecuritySettings({ 
+                        ...securitySettings, 
+                        showPassword: !securitySettings.showPassword,
+                        twoFactorEnabled: securitySettings.twoFactorEnabled // preserve field
+                      })}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
                     >
                       {securitySettings.showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
@@ -205,12 +341,11 @@ export default function AccountPage() {
                   />
                 </div>
                 <button type="submit" className="btn-primary w-full">
-                  <Key size={16} /> Update Password
+                  <Key size={16} className="inline mr-2" /> Update Password
                 </button>
               </form>
             </div>
 
-            {/* Two-Factor Authentication */}
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
               <div className="flex items-center justify-between">
                 <div>

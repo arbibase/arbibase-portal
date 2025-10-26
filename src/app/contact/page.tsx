@@ -277,7 +277,7 @@ export default function ContactPage() {
           </div>
 
           {/* Quick Links */}
-          <div className="rounded-2xl border border-white/10 bg-linear-to-br from-emerald-500/10 to-sky-500/10 p-6">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-sky-500/10 p-6">
             <h3 className="mb-3 font-semibold text-white">Need immediate assistance?</h3>
             <p className="mb-4 text-sm text-white/70">
               Check out our resources or schedule a call with our team.
