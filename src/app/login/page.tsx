@@ -24,7 +24,7 @@ function LoginForm() {
       try {
         const { data } = await supabase.auth.getUser();
         if (data?.user) {
-          const redirect = searchParams.get('redirect') || '/dashboard';
+          const redirect = searchParams?.get('redirect') || '/dashboard';
           router.replace(redirect);
         }
       } catch (err) {
@@ -54,7 +54,7 @@ function LoginForm() {
         // Small delay to ensure cookies are set
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        const redirect = searchParams.get('redirect') || '/dashboard';
+        const redirect = searchParams?.get('redirect') || '/dashboard';
         window.location.href = redirect; // Use window.location for hard redirect
       }
     } catch (err: any) {
