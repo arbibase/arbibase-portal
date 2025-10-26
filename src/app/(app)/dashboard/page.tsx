@@ -10,7 +10,6 @@ import {
   Mail, ArrowRight, Sparkles
 } from "lucide-react";
 
-import AppShell from "@/components/AppShell";
 import SpotlightCarousel, { SpotlightCard } from "@/components/SpotlightCarousel";
 
 /** Visual tokens */
@@ -39,9 +38,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     (async () => {
-      if (!supabase) return router.replace("/login");
+      if (!supabase) {
+        router.replace("/login");
+        return;
+      }
       const { data } = await supabase.auth.getUser();
-      if (!data?.user) return router.replace("/login");
+      if (!data?.user) {
+        router.replace("/login?redirect=/dashboard");
+        return;
+      }
       setUser(data.user);
       setLoading(false);
     })();
@@ -164,10 +169,14 @@ export default function Dashboard() {
     return full.split(" ")[0];
   }, [user]);
 
-  if (loading) return <AppShell active="overview"><div className="p-10 text-center fine">Loading…</div></AppShell>;
+  if (loading) return (
+    <div className="mx-auto max-w-[1140px] px-4 py-6 md:py-8">
+      <div className="p-10 text-center">Loading…</div>
+    </div>
+  );
 
   return (
-    <AppShell active="overview">
+    <div className="mx-auto max-w-[1140px] px-4 py-6 md:py-8">
       {/* Glass Hero */}
       <section className="rounded-2xl border border-white/10 bg-white/6 p-5 backdrop-blur-xl shadow-[0_20px_80px_-20px_rgba(0,0,0,.65)]">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -277,7 +286,7 @@ export default function Dashboard() {
       </section>
 
       {/* Concierge */}
-      <section className="mt-8 rounded-2xl border border-white/10 bg-linear-to-b from-[#0f141c] to-[#0b1017] p-6 text-center">
+      <section className="mt-8 rounded-2xl border border-white/10 bg-gradient-to-b from-[#0f141c] to-[#0b1017] p-6 text-center">
         <p className="mb-1 text-sm text-white/60">Need a hand?</p>
         <h3 className="mb-2 text-xl font-semibold">Your Concierge Team is on Standby</h3>
         <p className="mx-auto mb-4 max-w-2xl text-sm text-white/60">
@@ -296,7 +305,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </section>
-    </AppShell>
+    </div>
   );
 }
 

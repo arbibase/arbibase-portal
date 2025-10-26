@@ -5,7 +5,7 @@ type ShellProps = {
   active?: string;
 };
 
-// Simple wrapper - no sidebar needed since navigation is in global header
+// No sidebar, just a content wrapper
 export default function AppShell({ children }: ShellProps) {
   return (
     <div className="mx-auto max-w-[1140px] px-4 py-6 md:py-8">
