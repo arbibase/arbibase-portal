@@ -1,27 +1,12 @@
-// src/app/layout.tsx
-import "./globals.css";
-import { Inter } from "next/font/google";
+import "@/app/globals.css";
+import Header from "@/components/Header";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-
-export const metadata = {
-  title: "ArbiBase Portal",
-  description: "Property management portal",
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <head>
-        <script
-          async
-          defer
-          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-        />
-      </head>
-      <body className="bg-[#071019] text-white antialiased [font-family:var(--font-inter)]">
-        {children}
-      </body>
-    </html>
+    <div className="min-h-dvh bg-[#071019] text-white">
+      <Header />
+      {/* offset for sticky header */}
+      <main className="pt-16">{children}</main>
+    </div>
   );
 }

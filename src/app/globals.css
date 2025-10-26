@@ -93,3 +93,13 @@ html, body {
   transform: translateY(-2px) scale(1.08);
   filter: drop-shadow(0 0 10px rgba(16,185,129,.35));
 }
+
+/* Shared container rhythm */
+.section {
+  padding: 20px;
+  border-radius: 16px;
+  background: color-mix(in oklab, white 6%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 20px 80px -20px rgba(0,0,0,.65);
+}
