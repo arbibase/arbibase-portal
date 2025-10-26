@@ -217,3 +217,7 @@ function ShowcaseCard({
     </div>
   );
 }
+
+export const Inside = () => {
+  // your Inside component code
+};
