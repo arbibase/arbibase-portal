@@ -64,3 +64,31 @@ html, body {
 .card-grid-5 { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0,1fr)); }.map-wrap * { pointer-events: auto; }.gm-style { font-family: inherit; }.map-wrap { height: 520px; width: 100%; position: relative; z-index: 1; }/* Map & layout utilities (plain CSS is fine) */@media (min-width: 820px)  { .card-grid-5 { grid-template-columns: repeat(3, minmax(0,1fr)); } }
 @media (min-width: 1080px) { .card-grid-5 { grid-template-columns: repeat(4, minmax(0,1fr)); } }
 @media (min-width: 1280px) { .card-grid-5 { grid-template-columns: repeat(5, minmax(0,1fr)); } }
+
+/* ---------------- Animations ---------------- */
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes softGlow {
+  0% { box-shadow: 0 0 0 rgba(0,0,0,0); }
+  100% { box-shadow: 0 0 28px rgba(16,185,129,.35); }
+}
+
+.fade-up   { animation: fadeUp .6s cubic-bezier(.2,.6,.2,1) both; }
+.fade-up-1 { animation: fadeUp .6s cubic-bezier(.2,.6,.2,1) .02s both; }
+.fade-up-2 { animation: fadeUp .6s cubic-bezier(.2,.6,.2,1) .08s both; }
+.fade-up-3 { animation: fadeUp .6s cubic-bezier(.2,.6,.2,1) .14s both; }
+.fade-up-4 { animation: fadeUp .6s cubic-bezier(.2,.6,.2,1) .20s both; }
+.fade-up-5 { animation: fadeUp .6s cubic-bezier(.2,.6,.2,1) .26s both; }
+
+.glow-in   { animation: softGlow .35s ease-out both; }
+
+/* Footer icon glow */
+.icon-hover {
+  transition: transform .18s ease, filter .18s ease;
+}
+.icon-hover:hover {
+  transform: translateY(-2px) scale(1.08);
+  filter: drop-shadow(0 0 10px rgba(16,185,129,.35));
+}

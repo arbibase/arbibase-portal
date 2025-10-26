@@ -33,28 +33,33 @@ export default function PortalHero() {
         <div className="relative z-10 mx-auto grid w-full max-w-[980px] place-items-center px-6 py-16 md:py-24">
           <div className="w-full max-w-[560px] rounded-2xl border border-white/10 bg-white/8 backdrop-blur-xl shadow-[0_20px_80px_-20px_rgba(0,0,0,.5)]">
             <div className="p-8 md:p-10">
-              <div className="mb-5 flex items-center justify-center gap-2 text-emerald-300">
-                <LockSimple size={18} weight="bold" />
-                <span className="text-xs font-semibold uppercase tracking-wide">
-                  Verified Access
-                </span>
-              </div>
+<div className="mb-5 flex items-center justify-center gap-2 text-emerald-300 fade-up-1">
+  {/* Verified Access */}
+</div>
 
-              <h1 className="text-center text-3xl font-extrabold leading-tight md:text-4xl">
-                ArbiBase Portal
-              </h1>
-              <p className="mt-3 text-center text-base text-slate-300/90 md:text-lg">
-                Secure access to your operator dashboard and tools for STR &amp; MTR arbitrage.
-              </p>
+<h1 className="text-center text-3xl font-extrabold leading-tight md:text-4xl fade-up-2">
+  ArbiBase Portal
+</h1>
 
+<p className="mt-3 text-center text-base text-slate-300/90 md:text-lg fade-up-3">
+  Secure access to your operator dashboard and tools for STR &amp; MTR arbitrage.
+</p>
+
+<div className="mt-8 flex justify-center gap-3 fade-up-4">
+  {/* CTAs */}
+</div>
+
+<div className="mt-6 grid grid-cols-1 gap-3 text-slate-300/85 sm:grid-cols-3 fade-up-5">
+  {/* Chips */}
+</div>
               <div className="mt-8 flex justify-center gap-3">
-                <Link
-                  href="/login"
-                  data-event="login-attempt"
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,.28)] transition-all hover:bg-emerald-600 hover:shadow-[0_0_32px_rgba(16,185,129,.38)] focus-visible:ring-2 focus-visible:ring-emerald-300"
-                >
-                  Enter Portal
-                </Link>
+<Link
+  href="/login"
+  data-event="login-attempt"
+  className="glow-in inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_22px_rgba(16,185,129,.28)] transition-all hover:bg-emerald-600 hover:shadow-[0_0_32px_rgba(16,185,129,.38)] focus-visible:ring-2 focus-visible:ring-emerald-300"
+>
+  Enter Portal
+</Link>
 
                 <a
                   href="#inside"
@@ -158,14 +163,10 @@ function Card({
     }[accent] || "from-white/5 to-white/0 border-white/10";
 
   return (
-    <article
-      className={`group relative overflow-hidden rounded-2xl border ${theme} bg-linear-to-b p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(255,255,255,.06)]`}
-    >
-      <div className="mb-3 text-white/90">{icon}</div>
-      <h3 className="text-white font-semibold transition-colors group-hover:text-emerald-400">
-        {title}
-      </h3>
-      <p className="mt-2 text-sm text-slate-300/90">{desc}</p>
-    </article>
+<article
+  className={`group relative overflow-hidden rounded-2xl border ${theme} bg-linear-to-b p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(255,255,255,0.06)] fade-up`}
+>
+  {/* content */}
+</article>
   );
 }

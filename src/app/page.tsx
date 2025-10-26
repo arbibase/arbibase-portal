@@ -1,12 +1,14 @@
-import Link from "next/link";
-import Image from "next/image";
 import PortalHero from "@/components/PortalHero";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#071019] text-white">
       <Header />
       <PortalHero />
+      <PortalHero />
+      {/* … your footer stays the same … */}
       <Footer />
     </div>
   );
@@ -80,6 +82,12 @@ function Footer() {
           </a>
         </div>
       </div>
+      {/* Example footer icons */}
+<a aria-label="X"  href="https://x.com/arbibase"        className="icon-hover">…</a>
+<a aria-label="LinkedIn" href="https://linkedin.com/company/arbibase" className="icon-hover">…</a>
+<a aria-label="Instagram" href="https://instagram.com/arbibase"       className="icon-hover">…</a>
+<a aria-label="YouTube" href="https://youtube.com/@arbibase"          className="icon-hover">…</a>
+<a aria-label="TikTok" href="https://tiktok.com/@arbibase"            className="icon-hover">…</a>
     </footer>
   );
 }
