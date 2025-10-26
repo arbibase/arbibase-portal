@@ -6,9 +6,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-dvh bg-[#071019] text-white antialiased">
         <Header />
-        <main className="relative">
-          {children}
-        </main>
+        <main className="relative">{children}</main>
       </body>
     </html>
   );
