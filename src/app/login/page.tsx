@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
 import {
@@ -12,32 +13,49 @@ import {
 } from "@phosphor-icons/react";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [showPwd, setShowPwd] = useState(false);
 
+  useEffect(() => {
+    // Check if already logged in
+    (async () => {
+      if (!supabase) return;
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        const redirect = searchParams?.get('redirect') || '/dashboard';
+        router.replace(redirect);
+      }
+    })();
+  }, [router, searchParams]);
+
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setErr("");
 
-    if (!supabase) {
-      setErr("Supabase client not initialized");
+    try {
+      if (!supabase) throw new Error("Auth not initialized");
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Redirect to intended destination or dashboard
+      const redirect = searchParams?.get('redirect') || '/dashboard';
+      router.replace(redirect);
+    } catch (err: any) {
+      setErr(err.message || "Failed to sign in");
+    } finally {
       setBusy(false);
-      return;
     }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) setErr(error.message);
-    else location.href = "/dashboard";
-
-    setBusy(false);
   }
 
   const bg =

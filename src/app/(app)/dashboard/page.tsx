@@ -286,7 +286,7 @@ export default function Dashboard() {
       </section>
 
       {/* Concierge */}
-      <section className="mt-8 rounded-2xl border border-white/10 bg-gradient-to-b from-[#0f141c] to-[#0b1017] p-6 text-center">
+      <section className="mt-8 rounded-2xl border border-white/10 bg-linear-to-b from-[#0f141c] to-[#0b1017] p-6 text-center">
         <p className="mb-1 text-sm text-white/60">Need a hand?</p>
         <h3 className="mb-2 text-xl font-semibold">Your Concierge Team is on Standby</h3>
         <p className="mx-auto mb-4 max-w-2xl text-sm text-white/60">

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Get the pathname
   const path = request.nextUrl.pathname;
 
   // Define protected routes
@@ -12,12 +11,14 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
 
   if (isProtectedRoute) {
-    // Check for auth token in cookies
-    const token = request.cookies.get('sb-access-token')?.value || 
-                  request.cookies.get('sb-refresh-token')?.value;
+    // Check for Supabase auth cookies (they use different names)
+    const allCookies = request.cookies.getAll();
+    const hasAuthCookie = allCookies.some(cookie => 
+      cookie.name.includes('sb-') && cookie.name.includes('auth-token')
+    );
 
-    // If no token, redirect to login
-    if (!token) {
+    // If no auth cookie found, redirect to login
+    if (!hasAuthCookie) {
       const url = new URL('/login', request.url);
       url.searchParams.set('redirect', path);
       return NextResponse.redirect(url);
@@ -28,5 +29,12 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/properties/:path*', '/favorites/:path*', '/requests/:path*', '/billing/:path*', '/account/:path*'],
+  matcher: [
+    '/dashboard/:path*', 
+    '/properties/:path*', 
+    '/favorites/:path*', 
+    '/requests/:path*', 
+    '/billing/:path*', 
+    '/account/:path*'
+  ],
 };
