@@ -1,5 +1,5 @@
 /* Tailwind core – correct order */
-@import "tailwindcss/preflight";
+@import "tailwindcss/base";
 @tailwind utilities;
 
 /* Design tokens (you already have this file) */
