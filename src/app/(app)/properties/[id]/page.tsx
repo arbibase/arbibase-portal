@@ -1,7 +1,15 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { DEMO_PROPERTIES } from "@/lib/properties-demo";
-import MapPane from "@/components/ui/MapPane"; // uses Google map in your project
+import MapPane from "@/components/ui/MapPane";
+import {
+  FaSwimmingPool, FaParking, FaDumbbell, FaWifi,
+  FaUtensils, FaArrowLeft, FaArrowRight
+} from "react-icons/fa";
+import { MdSecurity, MdLocalLaundryService, MdPets } from "react-icons/md";
 
 export function generateStaticParams() {
   return DEMO_PROPERTIES.map(p => ({ id: p.id }));
@@ -11,85 +19,162 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const p = DEMO_PROPERTIES.find((x) => x.id === params.id);
   if (!p) return notFound();
 
-  const MapPaneAny = MapPane as unknown as any;
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [expandedMap, setExpandedMap] = useState(false);
+  const MapPaneAny = MapPane as any;
+
+  // Placeholder fallback images if missing
+  const propertyImages = p.photos?.length
+    ? p.photos.map((url) => ({ url, alt: `${p.title}` }))
+    : [
+        { url: "https://images.unsplash.com/photo-1502005097973-6a7082348e28", alt: "Living room" },
+        { url: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc", alt: "Bedroom" },
+      ];
+
+  const amenitiesIcons: Record<string, JSX.Element> = {
+    Pool: <FaSwimmingPool />,
+    Gym: <FaDumbbell />,
+    Parking: <FaParking />,
+    Wifi: <FaWifi />,
+    Restaurant: <FaUtensils />,
+    Security: <MdSecurity />,
+    Laundry: <MdLocalLaundryService />,
+    Pets: <MdPets />,
+  };
+
+  const handleImageError = (e: any) => {
+    e.target.src = "https://images.unsplash.com/photo-1560448204-603b3fc33ddc";
+  };
+
+  const nextImage = () =>
+    setCurrentImageIndex((i) => (i === propertyImages.length - 1 ? 0 : i + 1));
+
+  const prevImage = () =>
+    setCurrentImageIndex((i) => (i === 0 ? propertyImages.length - 1 : i - 1));
 
   return (
-    <main className="container grid gap-6 py-4">
-      {/* Header */}
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-white">{p.title}</h1>
-        <p className="text-gray-300">{p.address}</p>
-        <div className="flex items-center gap-3">
+    <main className="container mx-auto px-4 py-6">
+      {/* ============ Header ============ */}
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold text-white">{p.title}</h1>
+        <p className="text-gray-400">{p.address}</p>
+        <div className="flex flex-wrap gap-3 mt-2 text-gray-300">
           <span className="text-xl font-semibold text-white">${p.rent.toLocaleString()}</span>
-          <span className="text-gray-400">/month</span>
-          <span className="text-gray-400">• {p.beds} bd • {p.baths} ba</span>
-          <span className="rounded-full border border-[#203142] bg-[#0f1824] px-2 py-0.5 text-xs font-extrabold text-[#bdeaff]">
+          <span>/month</span>
+          <span>• {p.beds} bd • {p.baths} ba</span>
+          <span className="rounded-full border border-sky-600 bg-sky-900/40 px-2 py-0.5 text-xs font-extrabold text-sky-300">
             {p.approval}
           </span>
         </div>
       </header>
 
-      {/* Gallery */}
-      <section className="grid grid-cols-5 gap-3 rounded-2xl overflow-hidden">
-        {/* hero */}
-        <div className="relative col-span-5 md:col-span-3 h-[360px] bg-[#0f141c]">
-          {p.photos?.[0] && (
-            <Image src={p.photos[0]} alt={`${p.title} photo`} fill className="object-cover" />
-          )}
-        </div>
-        {/* thumbs */}
-        <div className="col-span-5 md:col-span-2 grid grid-cols-2 gap-3">
-          {(p.photos?.slice(1) ?? []).map((src, i) => (
-            <div key={i} className="relative h-[174px] bg-[#0f141c]">
-              <Image src={src} alt={`${p.title} ${i+2}`} fill className="object-cover" />
-            </div>
+      {/* ============ Image Carousel ============ */}
+      <section className="relative h-[500px] rounded-xl overflow-hidden mb-5">
+        <Image
+          src={propertyImages[currentImageIndex].url}
+          alt={propertyImages[currentImageIndex].alt}
+          fill
+          onError={handleImageError}
+          className="object-cover transition-opacity duration-500"
+        />
+        <button
+          onClick={prevImage}
+          className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full hover:bg-black/70"
+        >
+          <FaArrowLeft size={20} />
+        </button>
+        <button
+          onClick={nextImage}
+          className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 p-3 rounded-full hover:bg-black/70"
+        >
+          <FaArrowRight size={20} />
+        </button>
+
+        {/* Thumbnails */}
+        <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2">
+          {propertyImages.map((img, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentImageIndex(i)}
+              className={`w-16 h-16 border-2 rounded-lg overflow-hidden ${
+                i === currentImageIndex ? "border-sky-500" : "border-transparent opacity-70"
+              }`}
+            >
+              <Image
+                src={img.url}
+                alt={img.alt}
+                width={64}
+                height={64}
+                onError={handleImageError}
+                className="object-cover w-full h-full"
+              />
+            </button>
           ))}
-          {(!p.photos || p.photos.length < 2) && (
-            <div className="text-sm text-gray-400">No additional images</div>
-          )}
         </div>
       </section>
 
-      {/* Split: Facts + Map */}
+      {/* ============ Split Layout ============ */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Facts / Description */}
-        <div className="lg:col-span-2 grid gap-4">
-          {(p as any).description && (
-            <div className="rounded-xl border border-[#1e2733] bg-[#0d131a] p-4">
-              <h2 className="text-lg font-semibold mb-2">About this property</h2>
+        {/* Left: Details + Amenities */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="rounded-xl border border-[#1e2733] bg-[#0d131a] p-6 shadow-lg">
+            <h2 className="text-2xl font-semibold mb-3 text-white">Overview</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-gray-300">
+              <div><p className="text-gray-400">Bedrooms</p><p className="font-medium">{p.beds}</p></div>
+              <div><p className="text-gray-400">Bathrooms</p><p className="font-medium">{p.baths}</p></div>
+              <div><p className="text-gray-400">Approval</p><p className="font-medium">{p.approval}</p></div>
+              <div><p className="text-gray-400">Type</p><p className="font-medium">{p.type}</p></div>
+            </div>
+          </div>
+
+          {"description" in p && (p as any).description && (
+            <div className="rounded-xl border border-[#1e2733] bg-[#0d131a] p-6 shadow-lg">
+              <h2 className="text-2xl font-semibold mb-3 text-white">Description</h2>
               <p className="text-gray-300 leading-relaxed">{(p as any).description}</p>
             </div>
           )}
-          <div className="rounded-xl border border-[#1e2733] bg-[#0d131a] p-4">
-            <h2 className="text-lg font-semibold mb-3">Facts & features</h2>
-            <div className="grid sm:grid-cols-2 gap-3 text-gray-300">
-              <div>Bedrooms: <strong>{p.beds}</strong></div>
-              <div>Bathrooms: <strong>{p.baths}</strong></div>
-              <div>Approval: <strong>{p.approval}</strong></div>
-              <div>Address: <strong className="text-gray-200">{p.address}</strong></div>
+
+          {"amenities" in p && (p as any).amenities?.length ? (
+            <div className="rounded-xl border border-[#1e2733] bg-[#0d131a] p-6 shadow-lg">
+              <h2 className="text-2xl font-semibold mb-3 text-white">Amenities</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-gray-300">
+                {(p as any).amenities.map((a: string, i: number) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-sky-400 text-lg">
+                      {amenitiesIcons[a] ?? "•"}
+                    </span>
+                    {a}
+                  </div>
+                ))}
+              </div>
             </div>
-            {(p as any).amenities && (p as any).amenities.length > 0 && (
-              <>
-                <hr className="my-3 border-[#1e2733]" />
-                <h3 className="font-semibold mb-2">Amenities</h3>
-                <ul className="grid sm:grid-cols-2 gap-1.5 text-gray-300 list-disc list-inside">
-                  {(p as any).amenities.map((a: any) => <li key={a}>{a}</li>)}
-                </ul>
-              </>
-            )}
-          </div>
+          ) : null}
         </div>
 
-        <aside className="lg:col-span-1">
-          <div className="h-[340px] overflow-hidden rounded-lg">
+        {/* Right: Map + Address */}
+        <div className="lg:col-span-1">
+          <div
+            className={`rounded-xl border border-[#1e2733] bg-[#0d131a] p-3 transition-all duration-300 ${
+              expandedMap ? "h-[540px]" : "h-[320px]"
+            } overflow-hidden cursor-pointer`}
+            onClick={() => setExpandedMap(!expandedMap)}
+          >
             <MapPaneAny
               initialCenter={{ lat: p.lat, lng: p.lng }}
-              initialZoom={14}
-              markers={[{ id: p.id, title: p.title, position: { lat: p.lat, lng: p.lng } }]}
+              initialZoom={expandedMap ? 13 : 14}
+              markers={[
+                { id: p.id, title: p.title, position: { lat: p.lat, lng: p.lng } },
+              ]}
             />
           </div>
-          <p className="mt-2 text-sm text-gray-400">{p.address}</p>
-        </aside>
+          <div className="mt-3 text-gray-300 text-sm">
+            <p className="font-semibold text-white mb-1">Address</p>
+            <p>{p.address}</p>
+            <p className="mt-2 text-gray-400 text-xs">
+              Click map to {expandedMap ? "shrink" : "expand"}.
+            </p>
+          </div>
+        </div>
       </section>
     </main>
   );
