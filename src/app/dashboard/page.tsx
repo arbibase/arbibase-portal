@@ -42,6 +42,11 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
+  // --- NEW helper: detect missing supabase client-side config
+  function isSupabaseConfiguredClientSide() {
+    return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  }
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -78,41 +83,42 @@ export default function Dashboard() {
     if (!supabase || !user) return;
 
     try {
-      // Fetch user's property requests
-      const { data: requests, error: requestsError } = await supabase
+      const { data: requests, error: requestsError, status: requestsStatus } = await supabase
         .from("property_requests")
         .select("*")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
 
       if (requestsError) {
-        console.error("Error fetching requests:", requestsError);
+        if (requestsStatus === 404) {
+          console.warn("Supabase table 'property_requests' not found (404). Dashboard will show empty stats until backend is fixed.");
+        } else {
+          console.error("Error fetching requests:", requestsError);
+        }
+        // fallback to empty dataset so UI remains stable
+        setOperatorStats((prev) => ({ ...prev, verifiedDoors: 0, activeLeads: 0, requestsUsed: 0 }));
+        setRecentActivity([]);
         return;
       }
 
       // Fetch user profile to get request limit
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError, status: profileStatus } = await supabase
         .from("user_profiles")
         .select("requests_limit")
         .eq("user_id", user.id)
         .single();
 
       const requestLimit = profile?.requests_limit || 50;
-
       // Calculate stats from actual user data
       const allRequests = requests || [];
       const totalRequests = allRequests.length;
       const verifiedCount = allRequests.filter(r => r.status === "verified").length;
-      const activeLeadsCount = allRequests.filter(r => 
-        r.status === "in_review" || r.status === "pending"
-      ).length;
+      const activeLeadsCount = allRequests.filter(r => r.status === "in_review" || r.status === "pending").length;
 
       // Count recently verified (last 7 days)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const recentlyVerifiedCount = allRequests.filter(r => 
-        r.status === "verified" && new Date(r.updated_at) > sevenDaysAgo
-      ).length;
+      const recentlyVerifiedCount = allRequests.filter(r => r.status === "verified" && new Date(r.updated_at) > sevenDaysAgo).length;
 
       setOperatorStats({
         verifiedDoors: verifiedCount,
@@ -120,21 +126,24 @@ export default function Dashboard() {
         requestsUsed: totalRequests,
         requestsLimit: requestLimit,
         recentlyVerified: recentlyVerifiedCount,
-        tasksOverdue: 0 // Can be calculated based on created_at + 72 hours if still pending
+        tasksOverdue: 0
       });
 
-      // Set recent activity (last 5 requests)
       setRecentActivity(allRequests.slice(0, 5));
-
     } catch (error) {
       console.error("Error fetching user stats:", error);
+      // keep UI stable
     }
   }
 
   async function fetchSpotlights() {
-    if (!supabase) return;
+    if (!isSupabaseConfiguredClientSide() || !supabase) {
+      console.warn("Supabase client config missing — skipping spotlight fetch.");
+      setSpotlights([]); // safe fallback
+      return;
+    }
     try {
-      const { data: properties, error } = await supabase
+      const { data: properties, error, status } = await supabase
         .from("property_requests")
         .select("address, city, state, status, updated_at, property_type")
         .eq("status", "verified")
@@ -142,22 +151,27 @@ export default function Dashboard() {
         .limit(3);
 
       if (error) {
-        console.error("Error fetching spotlights:", error);
+        if (status === 404) {
+          console.warn("Supabase table 'property_requests' not found (404). Trending Opportunities disabled.");
+        } else {
+          console.error("Error fetching spotlights:", error);
+        }
+        setSpotlights([]);
         return;
       }
 
-      const formattedSpotlights = (properties || []).map(prop => ({
+      const formattedSpotlights = (properties || []).map((prop: any) => ({
         name: `${prop.address}, ${prop.city}`,
         location: `${prop.city}, ${prop.state}`,
         status: "VERIFIED",
         summary: `Verified property in ${prop.city}, ${prop.state}`,
-        photo: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400" // Placeholder, use actual property photo if available
+        photo: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400"
       }));
 
       setSpotlights(formattedSpotlights);
-
     } catch (error) {
       console.error("Error fetching spotlights:", error);
+      setSpotlights([]);
     }
   }
 

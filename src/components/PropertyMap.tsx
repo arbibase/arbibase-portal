@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 declare global {
   interface Window {
     google?: any;
-    markerClusterer?: any;
+    markerClusterer: any; // Only markerClusterer, not MarkerClusterer
   }
 }
 
@@ -66,10 +66,14 @@ export default function PropertyMap({ properties, selectedProperty, onPropertySe
         if (!window.google) {
           await loadScript(`https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,visualization`);
         }
-        // load markerclusterer
+        // load markerclusterer (tolerant)
         if (!window.markerClusterer) {
-          await loadScript("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
-          // marker clusterer provides window.markerClusterer or module; depending on lib we use global in createMarkers below
+          try {
+            await loadScript("https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js");
+          } catch (e) {
+            // clusterer optional — continue without it
+            console.warn("MarkerClusterer failed to load, continuing without clustering", e);
+          }
         }
 
         if (!mounted) return;
@@ -106,7 +110,7 @@ export default function PropertyMap({ properties, selectedProperty, onPropertySe
       markersRef.current.forEach(m => m.setMap(null));
       markersRef.current = [];
       if (clusterRef.current && typeof clusterRef.current.clearMarkers === "function") {
-        clusterRef.current.clearMarkers();
+        try { clusterRef.current.clearMarkers(); } catch (_) { /* ignore */ }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,7 +158,7 @@ export default function PropertyMap({ properties, selectedProperty, onPropertySe
       const lng = p.longitude ?? p.lng!;
       const marker = new window.google.maps.Marker({
         position: { lat, lng },
-        title: p.address || p.name || "",
+        title: p.address ?? "",
         map: mapRef.current,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
@@ -169,7 +173,7 @@ export default function PropertyMap({ properties, selectedProperty, onPropertySe
       const info = new window.google.maps.InfoWindow({
         content: `
           <div style="min-width:200px;color:#000">
-            <div style="font-weight:600;margin-bottom:6px;">${p.address ?? p.name ?? ""}</div>
+            <div style="font-weight:600;margin-bottom:6px;">${p.address ?? ""}</div>
             <div style="font-size:12px;color:#444;margin-bottom:8px;">${p.city ?? ""}${p.state ? ", " + p.state : ""}</div>
             <div style="display:flex;justify-content:space-between;">
               <div style="font-weight:600;">$${(p.price ?? 0).toLocaleString()}</div>
@@ -195,7 +199,7 @@ export default function PropertyMap({ properties, selectedProperty, onPropertySe
 
     // Create clusterer if available
     try {
-      const MC = (window as any).markerClusterer || (window as any).MarkerClusterer;
+      const MC = (window as any).markerClusterer;
       if (MC) {
         clusterRef.current = new MC({ markers, map: mapRef.current });
       }

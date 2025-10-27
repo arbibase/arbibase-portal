@@ -21,13 +21,13 @@ const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
 
 interface Property {
   id: string;
-  address: string;
-  city: string;
-  state: string;
-  price: number;
-  roi: number;
-  latitude: number;
-  longitude: number;
+  address?: string;
+  city?: string;
+  state?: string;
+  price?: number;
+  roi?: number;
+  latitude?: number;
+  longitude?: number;
   image_url?: string;
 }
 
@@ -39,11 +39,24 @@ export default function MapViewPage() {
   const [mapView, setMapView] = useState<"street" | "satellite">("street");
   const [showFilters, setShowFilters] = useState(false);
 
+  // --- NEW helper: detect missing supabase client-side config
+  function isSupabaseConfiguredClientSide() {
+    return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  }
+
   useEffect(() => {
     checkAuth();
   }, []);
 
   async function checkAuth() {
+    if (!isSupabaseConfiguredClientSide()) {
+      console.warn("Supabase client config missing (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY). Map will load with no remote data.");
+      // minimal fallback so map can still render
+      setProperties([]);
+      setLoading(false);
+      return;
+    }
+
     if (!supabase) {
       router.replace("/login");
       return;
@@ -53,22 +66,48 @@ export default function MapViewPage() {
       router.replace("/login");
       return;
     }
-    await loadProperties();
-    setLoading(false);
+    try {
+      await loadProperties();
+    } catch (e) {
+      console.warn("Loading properties failed, using empty list", e);
+      setProperties([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function loadProperties() {
-    if (!supabase) return;
+    if (!isSupabaseConfiguredClientSide() || !supabase) {
+      setProperties([]);
+      return;
+    }
 
-    const { data } = await supabase
-      .from("properties")
-      .select("*")
-      .not("latitude", "is", null)
-      .not("longitude", "is", null)
-      .limit(100);
+    try {
+      const { data, error, status } = await supabase
+        .from("properties")
+        .select("*")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null)
+        .limit(100);
 
-    if (data) {
-      setProperties(data);
+      if (error) {
+        if (status === 404) {
+          console.warn("Supabase table 'properties' not found (404). Map will show no properties until backend is fixed.");
+        } else {
+          console.error("Error loading properties:", error);
+        }
+        setProperties([]);
+        return;
+      }
+
+      if (Array.isArray(data)) {
+        setProperties(data as any);
+      } else {
+        setProperties([]);
+      }
+    } catch (err) {
+      console.error("Unexpected error loading properties:", err);
+      setProperties([]);
     }
   }
 
@@ -125,7 +164,7 @@ export default function MapViewPage() {
           <PropertyMap
             properties={properties}
             selectedProperty={selectedProperty}
-            onPropertySelect={setSelectedProperty}
+            onPropertySelect={(p) => setSelectedProperty(p)}
             mapView={mapView}
           />
 
@@ -188,7 +227,7 @@ export default function MapViewPage() {
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-white">
-                      ${property.price.toLocaleString()}
+                      ${typeof property.price === "number" ? property.price.toLocaleString() : "N/A"}
                     </span>
                     <span className="text-sm font-semibold text-emerald-400">
                       {property.roi}% ROI
