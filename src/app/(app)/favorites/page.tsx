@@ -221,32 +221,34 @@ export default function FavoritesPage() {
         </div>
       </header>
 
-      {/* Stats & Filters - FIXED OVERLAP */}
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none z-10" />
-          <input
-            type="text"
-            placeholder="Search favorites..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-10 w-full"
-          />
-        </div>
+      {/* Search & Filters */}
+      <section className="mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search favorites..."
+              className="w-full rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+            />
+          </div>
 
-        <div className="flex items-center gap-3">
-          <Filter size={18} className="text-white/60" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 pr-10 text-sm text-white"
-          >
-            <option value="recent" className="bg-[#0b141d]">Recently Saved</option>
-            <option value="price-low" className="bg-[#0b141d]">Price: Low to High</option>
-            <option value="price-high" className="bg-[#0b141d]">Price: High to Low</option>
-          </select>
+          <div className="flex items-center gap-3">
+            <Filter size={18} className="text-white/60" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 pr-10 text-sm text-white"
+            >
+              <option value="recent" className="bg-[#0b141d]">Recently Saved</option>
+              <option value="price-low" className="bg-[#0b141d]">Price: Low to High</option>
+              <option value="price-high" className="bg-[#0b141d]">Price: High to Low</option>
+            </select>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Properties Grid */}
       {filteredFavorites.length === 0 ? (
