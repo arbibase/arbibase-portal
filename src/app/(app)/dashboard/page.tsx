@@ -33,12 +33,6 @@ function recentlyVerified(verified_at?: string) {
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [kpis, setKpis] = useState([
-    { label: "Requested Properties", value: "–", detail: "Open / In review", icon: ClipboardList },
-    { label: "Verified Doors", value: "–", detail: "Operator ready", icon: Building2 },
-    { label: "Pending Approvals", value: "–", detail: "Awaiting review", icon: CircleCheckBig },
-  ]);
-  const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
   const [operatorStats, setOperatorStats] = useState({
     verifiedDoors: 0,
     activeLeads: 0,
@@ -68,179 +62,95 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user || !supabase) return;
-    (async () => {
-      const client = supabase;
-
-      // --- KPI: Requested
-      let requested = 0;
-      try {
-        const { count } = await client.from("property_requests")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["submitted","in_review","open"]);
-        requested = count ?? 0;
-      } catch {}
-      if (!requested) {
-        try {
-          const { count } = await client.from("requests")
-            .select("id", { count: "exact", head: true })
-            .in("status", ["submitted","in_review","open"]);
-          requested = count ?? 0;
-        } catch {}
-      }
-
-      // --- KPI: Verified
-      let verified = 0;
-      try {
-        const { count } = await client.from("properties")
-          .select("id", { count: "exact", head: true })
-          .eq("verified", true);
-        verified = count ?? 0;
-      } catch {}
-
-      // --- KPI: Pending approvals
-      let pending = 0;
-      try {
-        const { count } = await client.from("approvals")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["pending","awaiting"]);
-        pending = count ?? 0;
-      } catch {}
-      if (!pending) {
-        try {
-          const { count } = await client.from("property_requests")
-            .select("id", { count: "exact", head: true })
-            .in("status", ["awaiting_approval","pending"]);
-          pending = count ?? 0;
-        } catch {}
-      }
-
-      setKpis([
-        { label: "Requested Properties", value: String(requested), detail: "Open / In review", icon: ClipboardList },
-        { label: "Verified Doors",       value: String(verified),  detail: "Operator ready",   icon: Building2 },
-        { label: "Pending Approvals",    value: String(pending),   detail: "Awaiting review",  icon: CircleCheckBig },
-      ]);
-
-      // --- Spotlight: score client-side
-      let rows: any[] | null = null;
-      try {
-        const { data } = await client.from("properties").select(`
-          name, city, state,
-          summary:headline,
-          verified, verified_at,
-          featured, photo_url,
-          view_count, favorite_count
-        `).limit(12);
-        rows = data || null;
-      } catch {}
-
-      if (rows?.length) {
-        const enriched = rows.map(p => ({
-          ...p,
-          _score: Number(p.view_count || 0) + 3 * Number(p.favorite_count || 0),
-        }));
-        enriched.sort((a,b) => {
-          const sa=a._score||0, sb=b._score||0;
-          if (sb!==sa) return sb-sa;
-          if (b.featured && !a.featured) return 1;
-          if (a.featured && !b.featured) return -1;
-          const ta=a.verified_at?Date.parse(a.verified_at):0;
-          const tb=b.verified_at?Date.parse(b.verified_at):0;
-          return (tb||0)-(ta||0);
-        });
-
-        const mapped: Spotlight[] = enriched.slice(0,8).map((p:any)=>({
-          name: p.name || "Untitled listing",
-          location: [p.city, p.state].filter(Boolean).join(" • "),
-          status: p.verified ? (recentlyVerified(p.verified_at)?"Newly verified":"Verified") : (p._score>0?"Trending":"Lead refreshed"),
-          summary: p.summary || "Operator-friendly terms and flexible options.",
-          photo: p.photo_url || undefined,
-        }));
-        setSpotlights(mapped);
-      } else {
-        setSpotlights([
-          {
-            name: "The Willow Lofts",
-            location: "Capitol Hill • Seattle",
-            status: "Newly verified",
-            summary: "7 furnished units with flexible 6–12 month terms and concierge support.",
-            photo: "https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=1200&auto=format&fit=crop",
-          },
-          {
-            name: "Riverfront Rowhomes",
-            location: "Downtown • Austin",
-            status: "Trending",
-            summary: "Boutique rowhomes ideal for owner-operators expanding into STR + mid-term.",
-            photo: "https://images.unsplash.com/photo-1459535653751-d571815e906b?q=80&w=1200&auto=format&fit=crop",
-          },
-        ]);
-      }
-
-      // NEW: Fetch recent activity (last 5 requests)
-      try {
-        const { data: requests } = await client
-          .from("property_requests")
-          .select("*")
-          .order("updated_at", { ascending: false })
-          .limit(5);
-
-        if (requests && requests.length > 0) {
-          setRecentActivity(requests as PropertyRequest[]);
-        } else {
-          // Mock data fallback for development
-          setRecentActivity([
-            {
-              id: "1",
-              address: "123 Oak Street",
-              city: "Austin",
-              state: "TX",
-              status: "in_review",
-              created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-              updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-              property_type: "apartment"
-            }
-          ]);
-        }
-      } catch (error) {
-        console.error("Error fetching recent activity:", error);
-        setRecentActivity([]);
-      }
-
-      // NEW: Update operator stats from actual requests
-      try {
-        const { data: allRequests } = await client
-          .from("property_requests")
-          .select("id, status, created_at");
-
-        if (allRequests) {
-          const now = Date.now();
-          const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-
-          const verifiedCount = allRequests.filter(r => r.status === "verified").length;
-          const activeCount = allRequests.filter(r => 
-            r.status === "pending" || r.status === "in_review"
-          ).length;
-          const recentlyVerifiedCount = allRequests.filter(r => 
-            r.status === "verified" && new Date(r.created_at).getTime() > sevenDaysAgo
-          ).length;
-
-          setOperatorStats(prev => ({
-            ...prev,
-            verifiedDoors: verifiedCount,
-            activeLeads: activeCount,
-            recentlyVerified: recentlyVerifiedCount
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching operator stats:", error);
-      }
-    })();
+    fetchUserStats();
   }, [user]);
+
+  async function fetchUserStats() {
+    if (!supabase || !user) return;
+
+    try {
+      // Fetch user's property requests
+      const { data: requests, error: requestsError } = await supabase
+        .from("property_requests")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+
+      if (requestsError) {
+        console.error("Error fetching requests:", requestsError);
+        return;
+      }
+
+      // Fetch user profile to get request limit
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("requests_limit")
+        .eq("user_id", user.id)
+        .single();
+
+      const requestLimit = profile?.requests_limit || 50;
+
+      // Calculate stats from actual user data
+      const allRequests = requests || [];
+      const totalRequests = allRequests.length;
+      const verifiedCount = allRequests.filter(r => r.status === "verified").length;
+      const activeLeadsCount = allRequests.filter(r => 
+        r.status === "in_review" || r.status === "pending"
+      ).length;
+
+      // Count recently verified (last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const recentlyVerifiedCount = allRequests.filter(r => 
+        r.status === "verified" && new Date(r.updated_at) > sevenDaysAgo
+      ).length;
+
+      setOperatorStats({
+        verifiedDoors: verifiedCount,
+        activeLeads: activeLeadsCount,
+        requestsUsed: totalRequests,
+        requestsLimit: requestLimit,
+        recentlyVerified: recentlyVerifiedCount,
+        tasksOverdue: 0 // Can be calculated based on created_at + 72 hours if still pending
+      });
+
+      // Set recent activity (last 5 requests)
+      setRecentActivity(allRequests.slice(0, 5));
+
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+    }
+  }
 
   const firstName = useMemo(() => {
     const full = (user?.user_metadata?.full_name as string | undefined) || "";
     if (!full.trim()) return user?.email?.split("@")[0] || "there";
     return full.split(" ")[0];
   }, [user]);
+
+  const spotlights: Spotlight[] = [
+    {
+      name: "Miami Beach Condo",
+      location: "Miami, FL",
+      status: "HOT",
+      summary: "Verified landlord approval for 2BR/2BA in prime location",
+      photo: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400"
+    },
+    {
+      name: "Austin Downtown Loft",
+      location: "Austin, TX",
+      status: "NEW",
+      summary: "STR-friendly building with high occupancy rates",
+      photo: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400"
+    },
+    {
+      name: "Nashville Music Row",
+      location: "Nashville, TN",
+      status: "VERIFIED",
+      summary: "Premium location near entertainment district",
+      photo: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400"
+    }
+  ];
 
   if (loading) {
     return (
@@ -286,7 +196,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Consolidated Metrics - Single Row */}
+      {/* Updated Metrics Section with Links */}
       <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <OperatorMetricCard
           icon={<Building2 size={20} />}
@@ -294,7 +204,7 @@ export default function Dashboard() {
           value={operatorStats.verifiedDoors}
           sublabel="Ready to onboard"
           color="emerald"
-          href="/properties?filter=verified"
+          href="/requests?status=verified"
         />
         <OperatorMetricCard
           icon={<TrendingUp size={20} />}
@@ -302,7 +212,7 @@ export default function Dashboard() {
           value={operatorStats.activeLeads}
           sublabel="In your pipeline"
           color="blue"
-          href="/requests?status=active"
+          href="/requests?status=in_review,pending"
         />
         <OperatorMetricCard
           icon={<Target size={20} />}
@@ -318,7 +228,7 @@ export default function Dashboard() {
           value={operatorStats.recentlyVerified}
           sublabel="Verified properties"
           color="cyan"
-          href="/properties?filter=new"
+          href="/requests?status=verified&recent=7"
         />
       </section>
 
@@ -473,7 +383,7 @@ export default function Dashboard() {
   );
 }
 
-// Updated Component for Operator Metrics
+// Updated OperatorMetricCard with clickable links
 function OperatorMetricCard({ icon, label, value, sublabel, color, href }: {
   icon: React.ReactNode;
   label: string;
@@ -490,7 +400,7 @@ function OperatorMetricCard({ icon, label, value, sublabel, color, href }: {
   };
 
   const content = (
-    <div className={`rounded-2xl border bg-linear-to-br ${colorMap[color]} p-4 transition-all hover:scale-[1.02]`}>
+    <div className={`rounded-2xl border bg-gradient-to-br ${colorMap[color]} p-4 transition-all hover:scale-[1.02] ${href ? 'cursor-pointer' : ''}`}>
       <div className="mb-3 rounded-lg bg-white/10 p-2 text-white/90 w-fit">{icon}</div>
       <p className="text-2xl font-bold text-white mb-1">{value}</p>
       <p className="text-xs font-medium text-white/70">{label}</p>

@@ -153,27 +153,7 @@ export default function FavoritesPage() {
   }
 
   function getMockFavorites(): FavoriteProperty[] {
-    return [
-      {
-        id: "fav-1",
-        property_id: "prop-1",
-        saved_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        property: {
-          id: "prop-1",
-          name: "Downtown Luxury Loft",
-          address: "123 Main St #301",
-          city: "Austin",
-          state: "TX",
-          rent: 2500,
-          beds: 2,
-          baths: 2,
-          property_type: "apartment",
-          photo_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
-          verified: true,
-          summary: "Modern loft with high ceilings and skyline views."
-        }
-      }
-    ];
+    return [];  // Return empty array - no mock data
   }
 
   // Filter & Sort logic
@@ -241,27 +221,25 @@ export default function FavoritesPage() {
         </div>
       </header>
 
-      {/* Stats & Filters */}
+      {/* Stats & Filters - FIXED OVERLAP */}
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search saved properties..."
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-10"
+            className="input pl-10 w-full"
           />
         </div>
 
-        {/* Sort */}
         <div className="flex items-center gap-3">
           <Filter size={18} className="text-white/60" />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="input min-w-40"
+            className="input min-w-[160px] bg-[#0b141d] text-white"
           >
             <option value="recent">Recently Saved</option>
             <option value="price-low">Price: Low to High</option>

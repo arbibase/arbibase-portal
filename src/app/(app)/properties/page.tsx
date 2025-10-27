@@ -95,42 +95,7 @@ export default function PropertiesPage() {
   }
 
   function getMockProperties(): Property[] {
-    return [
-      {
-        id: "1",
-        name: "Downtown Luxury Loft",
-        address: "123 Main St #301",
-        city: "Austin",
-        state: "TX",
-        zip_code: "78701",
-        rent: 2500,
-        beds: 2,
-        baths: 2,
-        property_type: "apartment",
-        photo_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
-        verified: true,
-        summary: "Modern loft with high ceilings and skyline views.",
-        lat: 30.2672,
-        lng: -97.7431
-      },
-      {
-        id: "2",
-        name: "Riverside Townhouse",
-        address: "456 River Road",
-        city: "Seattle",
-        state: "WA",
-        zip_code: "98101",
-        rent: 3200,
-        beds: 3,
-        baths: 2.5,
-        property_type: "townhouse",
-        photo_url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800",
-        verified: true,
-        summary: "Spacious townhouse near waterfront.",
-        lat: 47.6062,
-        lng: -122.3321
-      }
-    ];
+    return [];  // Return empty array - no mock data
   }
 
   // Filter logic
@@ -224,17 +189,17 @@ export default function PropertiesPage() {
         </div>
       </header>
 
-      {/* Search & Filters Bar */}
+      {/* Search & Filters Bar - FIXED OVERLAP */}
       <section className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="relative flex-1">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by name, address, or city..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input pl-10"
+              className="input pl-10 w-full"
             />
           </div>
           <button
@@ -270,7 +235,11 @@ export default function PropertiesPage() {
             </div>
             <div>
               <label className="mb-2 block text-xs font-medium text-white/70">Bedrooms</label>
-              <select value={beds} onChange={(e) => setBeds(e.target.value)} className="input">
+              <select 
+                value={beds} 
+                onChange={(e) => setBeds(e.target.value)} 
+                className="input bg-[#0b141d] text-white"
+              >
                 <option value="any">Any</option>
                 <option value="1">1+</option>
                 <option value="2">2+</option>
@@ -307,7 +276,13 @@ export default function PropertiesPage() {
       ) : (
         <section className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div ref={mapRef} className="h-[600px] rounded-2xl border border-white/10 bg-white/5" />
+            <div className="h-[600px] rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+              <div className="text-center text-white/40">
+                <MapIcon size={48} className="mx-auto mb-2" />
+                <p className="text-sm">Map integration coming soon</p>
+                <p className="text-xs">Google Maps API key required</p>
+              </div>
+            </div>
           </div>
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
             {filteredProperties.map((property) => (
@@ -340,13 +315,12 @@ function PropertyCard({ property, onToggleFavorite, compact = false }: {
 }) {
   return (
     <article className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden transition-all hover:bg-white/8 hover:border-emerald-400/30">
-      <div className="relative h-48 overflow-hidden bg-linear-to-br from-sky-800/40 to-emerald-800/40">
+      <div className="relative h-48 overflow-hidden bg-gradient-to-br from-sky-800/40 to-emerald-800/40">
         {property.photo_url ? (
-          <Image
+          <img
             src={property.photo_url}
             alt={property.name}
-            fill
-            className="object-cover"
+            className="h-full w-full object-cover"
           />
         ) : (
           <div className="flex h-full items-center justify-center">

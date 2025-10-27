@@ -165,7 +165,7 @@ function LoginForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@arbibase.com"
+                placeholder="you@mail.com"
                 className="w-full rounded-xl border border-white/15 bg-white/5 pl-10 pr-4 py-3 text-sm text-white placeholder-white/40 outline-none focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/30"
                 disabled={loading}
                 required

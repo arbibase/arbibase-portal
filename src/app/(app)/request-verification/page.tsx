@@ -332,17 +332,17 @@ export default function RequestVerificationPage() {
                       onChange={(e) =>
                         updateProperty(index, "state", e.target.value)
                       }
-                      className={`input ${
+                      className={`input bg-[#0b141d] text-white ${
                         errors[index]?.state ? "border-red-500" : ""
                       }`}
                     >
-                      <option value="">Select state</option>
-                      <option value="TX">Texas</option>
-                      <option value="CA">California</option>
-                      <option value="FL">Florida</option>
-                      <option value="NY">New York</option>
-                      <option value="WA">Washington</option>
-                      <option value="CO">Colorado</option>
+                      <option value="" className="bg-[#0b141d]">Select state</option>
+                      <option value="TX" className="bg-[#0b141d]">Texas</option>
+                      <option value="CA" className="bg-[#0b141d]">California</option>
+                      <option value="FL" className="bg-[#0b141d]">Florida</option>
+                      <option value="NY" className="bg-[#0b141d]">New York</option>
+                      <option value="WA" className="bg-[#0b141d]">Washington</option>
+                      <option value="CO" className="bg-[#0b141d]">Colorado</option>
                     </select>
                     {errors[index]?.state && (
                       <p className="mt-1 text-sm text-red-400">
