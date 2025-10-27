@@ -28,6 +28,7 @@ type PropertyRequest = {
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [operatorStats, setOperatorStats] = useState({
     verifiedDoors: 0,
     activeLeads: 0,
@@ -40,6 +41,10 @@ export default function Dashboard() {
   const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     (async () => {

@@ -1,17 +1,21 @@
-import PortalHero from "@/components/PortalHero";
+"use client";
 
-// Footer component is defined locally as a fallback to avoid missing module errors
-const Footer = () => (
-  <footer className="py-6 text-center text-sm text-gray-400">
-    © {new Date().getFullYear()} ArbiBase. All rights reserved.
-  </footer>
-);
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/dashboard");
+  }, [router]);
+
   return (
-    <>
-      <PortalHero />
-      <Footer />
-    </>
+    <div className="flex min-h-screen items-center justify-center bg-[#0f141c]">
+      <div className="text-center">
+        <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-r-transparent"></div>
+        <p className="mt-4 text-sm text-white/70">Redirecting to dashboard...</p>
+      </div>
+    </div>
   );
 }

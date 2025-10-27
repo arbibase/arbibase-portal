@@ -5,6 +5,19 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { MapPin, Filter, Layers, List, Search, DollarSign, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full flex items-center justify-center bg-white/5">
+      <div className="text-center">
+        <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-r-transparent"></div>
+        <p className="mt-4 text-sm text-white/70">Loading map...</p>
+      </div>
+    </div>
+  ),
+});
 
 interface Property {
   id: string;
@@ -109,27 +122,11 @@ export default function MapViewPage() {
       <div className="flex-1 flex relative">
         {/* Map Section */}
         <div className="flex-1 relative">
-          {/* Placeholder for Google Maps / Mapbox */}
-          <div className="absolute inset-0 bg-white/5 flex items-center justify-center">
-            <div className="text-center">
-              <MapPin size={64} className="mx-auto mb-4 text-white/20" />
-              <h3 className="text-lg font-bold text-white mb-2">Interactive Map</h3>
-              <p className="text-sm text-white/60 mb-4">
-                Integrate Google Maps or Mapbox here
-              </p>
-              <div className="flex gap-2 justify-center">
-                {properties.slice(0, 5).map((property, idx) => (
-                  <button
-                    key={property.id}
-                    onClick={() => setSelectedProperty(property)}
-                    className="rounded-full bg-emerald-500 text-white w-8 h-8 text-xs font-bold hover:bg-emerald-600"
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <PropertyMap
+            properties={properties}
+            selectedProperty={selectedProperty}
+            onPropertySelect={setSelectedProperty}
+          />
 
           {/* Map Controls */}
           <div className="absolute top-4 left-4 space-y-2">
