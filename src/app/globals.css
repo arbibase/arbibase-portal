@@ -11,31 +11,83 @@ html, body {
   min-height: 100%;
 }
 
-/* Component helpers */
+/* Component helpers - converted to standard CSS (Tailwind v4 doesn't support @apply) */
 .card {
-  @apply rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)];
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45);
 }
 
 .btn {
-  @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
 }
 
 .btn-primary {
-  @apply btn bg-emerald-500 text-white shadow-lg shadow-emerald-900/30
-         hover:bg-emerald-600 focus-visible:outline-none
-         focus-visible:ring-2 focus-visible:ring-emerald-300;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  background-color: #10b981;
+  color: white;
+  box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: #059669;
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid #6ee7b7;
+  outline-offset: 2px;
 }
 
 .btn-ghost {
-  @apply btn border border-white/15 bg-white/5 text-white/90
-         hover:bg-white/10 focus-visible:outline-none
-         focus-visible:ring-2 focus-visible:ring-sky-400;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
 }
 
 .input {
-  @apply w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm
-         text-white placeholder-white/40 outline-none
-         focus:border-sky-400/40 focus:ring-2 focus:ring-sky-400/30;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: white;
+  outline: none;
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.input:focus {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
 }
 
 /* Map utilities */
