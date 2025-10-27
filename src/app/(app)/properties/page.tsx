@@ -10,7 +10,7 @@ import {
   Building2, Grid, Map as MapIcon, CheckCircle2,
   SlidersHorizontal, X, TrendingUp, ExternalLink, Sparkles
 } from "lucide-react";
-import { calculateLeadScore, getScoreColor, getScoreBg, getGradeBadge, type LeadScore } from "@/lib/lead-scoring";
+import { calculateLeadScore, getScoreColor, getScoreBg, getGradeBadge } from "@/lib/lead-scoring";
 import { Target, Star } from "lucide-react";
 
 type Property = {
@@ -35,10 +35,18 @@ type Property = {
   view_count?: number;
   favorite_count?: number;
   revenue_monthly_est?: number;
+  revenue_annual_est?: number;
   coc_estimate?: number;
 };
 
 type SortBy = "recommended" | "latest" | "rent_asc" | "rent_desc";
+
+type Bounds = {
+  n: number; // north
+  s: number; // south
+  e: number; // east
+  w: number; // west
+};
 
 export default function PropertiesPage() {
   const router = useRouter();
@@ -53,11 +61,11 @@ export default function PropertiesPage() {
   const markerClustererRef = useRef<any>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // New state for property preview drawer
+  // Property preview drawer
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [showPropertyDrawer, setShowPropertyDrawer] = useState(false);
 
-  // New state for ROI calculator
+  // ROI calculator
   const [showROICalculator, setShowROICalculator] = useState(false);
   const [roiProperty, setRoiProperty] = useState<Property | null>(null);
 
@@ -69,11 +77,17 @@ export default function PropertiesPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>("recommended");
+  const [mapBounds, setMapBounds] = useState<Bounds | null>(null);
 
   // Infinite scroll
   const PAGE_SIZE = 24;
   const [page, setPage] = useState(1);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  // --- Small guard to avoid noisy errors if env vars are missing locally
+  function isSupabaseConfiguredClientSide() {
+    return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  }
 
   useEffect(() => {
     checkAuth();
@@ -91,32 +105,38 @@ export default function PropertiesPage() {
     }
   }, [filteredProperties, viewMode]);
 
-  // Read URL params on mount
+  // Read URL params on mount (includes bounds)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const s = params.get("sort") as SortBy | null;
     const v = params.get("verified");
+    const boundsStr = params.get("bounds");
+
     if (s && ["recommended", "latest", "rent_asc", "rent_desc"].includes(s)) setSortBy(s);
     if (v) setVerifiedOnly(v === "true");
+
+    if (boundsStr) {
+      try {
+        // order in URL: [south, north, west, east]
+        const [s, n, w, e] = JSON.parse(boundsStr);
+        setMapBounds({ n, s, e, w });
+      } catch {
+        console.error("Invalid bounds in URL");
+      }
+    }
   }, []);
 
-  // Write URL params
+  // Write URL params (persist bounds when in map)
   useEffect(() => {
     if (loading) return;
     const params = new URLSearchParams();
     params.set("sort", sortBy);
     params.set("verified", String(verifiedOnly));
-    if (viewMode === "map" && googleMapRef.current) {
-      const b = googleMapRef.current.getBounds();
-      if (b) {
-        params.set("bounds", JSON.stringify([
-          b.getSouthWest().lat(), b.getNorthEast().lat(),
-          b.getSouthWest().lng(), b.getNorthEast().lng()
-        ]));
-      }
+    if (viewMode === "map" && mapBounds) {
+      params.set("bounds", JSON.stringify([mapBounds.s, mapBounds.n, mapBounds.w, mapBounds.e]));
     }
     window.history.replaceState({}, "", `?${params.toString()}`);
-  }, [sortBy, verifiedOnly, viewMode, filteredProperties, loading]);
+  }, [sortBy, verifiedOnly, viewMode, mapBounds, loading]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -134,17 +154,49 @@ export default function PropertiesPage() {
     setPage(1);
   }, [searchQuery, minRent, maxRent, beds, verifiedOnly, sortBy, selectedMarket]);
 
-  // Map idle → filter by bounds
+  // Map idle → update mapBounds (debounced) and apply bounds-filter
   useEffect(() => {
     if (!googleMapRef.current || viewMode !== "map") return;
+
+    let t: number | null = null;
     const idle = google.maps.event.addListener(googleMapRef.current, "idle", () => {
-      const filtered = filterByBounds(applyFilters(properties));
-      setFilteredProperties(sortProps(filtered, sortBy));
+      if (t) window.clearTimeout(t);
+      t = window.setTimeout(() => {
+        const b = googleMapRef.current!.getBounds();
+        if (b) {
+          setMapBounds({
+            n: b.getNorthEast().lat(),
+            s: b.getSouthWest().lat(),
+            e: b.getNorthEast().lng(),
+            w: b.getSouthWest().lng(),
+          });
+        }
+        const filtered = filterByBounds(applyFilters(properties));
+        setFilteredProperties(sortProps(filtered, sortBy));
+      }, 150);
     });
-    return () => google.maps.event.removeListener(idle);
+
+    return () => {
+      if (t) window.clearTimeout(t);
+      google.maps.event.removeListener(idle);
+    };
   }, [properties, sortBy, viewMode, searchQuery, minRent, maxRent, beds, verifiedOnly]);
 
+  // Refetch when bounds change in map mode (server-side bounds filter)
+  useEffect(() => {
+    if (viewMode === "map") {
+      fetchProperties();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapBounds]);
+
   async function checkAuth() {
+    if (!isSupabaseConfiguredClientSide()) {
+      console.warn("Supabase env missing; loading without remote data.");
+      setLoading(false);
+      return;
+    }
+
     if (!supabase) {
       router.replace("/login");
       return;
@@ -162,10 +214,21 @@ export default function PropertiesPage() {
     if (!supabase) return;
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("properties")
         .select("*")
         .order("created_at", { ascending: false });
+
+      // Apply bounds if present
+      if (mapBounds) {
+        query = query
+          .gte("lat", mapBounds.s)
+          .lte("lat", mapBounds.n)
+          .gte("lng", mapBounds.w)
+          .lte("lng", mapBounds.e);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Error fetching properties:", error);
@@ -174,22 +237,18 @@ export default function PropertiesPage() {
         return;
       }
 
-      if (data && data.length > 0) {
-        setProperties(data as Property[]);
-        setFilteredProperties(data as Property[]);
-      } else {
-        setProperties(getMockProperties());
-        setFilteredProperties(getMockProperties());
-      }
+      const list = (data && data.length > 0) ? (data as Property[]) : getMockProperties();
+      setProperties(list);
+      setFilteredProperties(sortProps(list, sortBy));
     } catch (error) {
       console.error("Unexpected error:", error);
       setProperties(getMockProperties());
-      setFilteredProperties(getMockProperties());
+      setFilteredProperties(sortProps(getMockProperties(), sortBy));
     }
   }
 
   function getMockProperties(): Property[] {
-    return [];  // Return empty array - no mock data
+    return [];  // Keep empty in production
   }
 
   function recommendedScore(p: Property) {
@@ -292,7 +351,7 @@ export default function PropertiesPage() {
 
     if (typeof window === "undefined") return;
 
-    if (!window.google) {
+    if (!(window as any).google) {
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,visualization`;
       script.async = true;
@@ -426,7 +485,7 @@ export default function PropertiesPage() {
       markerClustererRef.current.clearMarkers();
     }
 
-    // Create new markers
+    // Create new markers (slightly larger, clearer)
     const markers = filteredProperties
       .filter(p => p.lat && p.lng)
       .map((property) => {
@@ -439,7 +498,7 @@ export default function PropertiesPage() {
             fillOpacity: 0.9,
             strokeWeight: property.verified ? 2 : 0,
             strokeColor: property.verified ? "#10b981" : "transparent",
-            scale: property.verified ? 8 : 6,
+            scale: property.verified ? 10 : 8,
           },
         });
 
@@ -455,7 +514,7 @@ export default function PropertiesPage() {
 
     markersRef.current = markers;
 
-    // Initialize clusterer with custom renderer
+    // Initialize clusterer with brighter label
     if ((window as any).markerClusterer) {
       markerClustererRef.current = new (window as any).markerClusterer.MarkerClusterer({
         markers,
@@ -465,16 +524,16 @@ export default function PropertiesPage() {
             position,
             label: {
               text: String(count),
-              color: "#d1fae5",
-              fontSize: "12px",
+              color: "#ffffff",
+              fontSize: "13px",
               fontWeight: "700",
             },
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
-              scale: 18,
-              fillColor: "rgba(16,185,129,.25)",
+              scale: 20,
+              fillColor: "rgba(16,185,129,0.3)",
               fillOpacity: 1,
-              strokeColor: "rgba(16,185,129,.6)",
+              strokeColor: "rgba(16,185,129,0.8)",
               strokeWeight: 2,
             },
           }),
@@ -512,6 +571,13 @@ export default function PropertiesPage() {
     // TODO: Save to database
     setShowROICalculator(false);
   }
+
+  // Allow any child to open ROI via custom event
+  useEffect(() => {
+    const handler = (e: any) => openROICalculator(e.detail);
+    window.addEventListener('openROI', handler);
+    return () => window.removeEventListener('openROI', handler);
+  }, []);
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-8">
@@ -909,7 +975,7 @@ export default function PropertiesPage() {
             {/* Content */}
             <div className="p-4 space-y-4">
               {/* Hero Image */}
-              <div className="relative h-64 rounded-xl overflow-hidden bg-linear-to-brrom-sky-800/40 to-emerald-800/40">
+              <div className="relative h-64 rounded-xl overflow-hidden bg-linear-to-br from-sky-800/40 to-emerald-800/40">
                 {selectedProperty.photo_url ? (
                   <img src={selectedProperty.photo_url} alt={selectedProperty.name} className="w-full h-full object-cover" />
                 ) : (
@@ -925,6 +991,41 @@ export default function PropertiesPage() {
                   </div>
                 )}
               </div>
+
+              {/* ROI Overlay */}
+              {selectedProperty.revenue_monthly_est && selectedProperty.coc_estimate ? (
+                <div className="rounded-xl bg-linear-to-br from-emerald-500/10 to-sky-500/10 border border-emerald-400/20 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-white/60 mb-1">Projected Revenue</div>
+                      <div className="text-2xl font-bold text-emerald-400">
+                        ${selectedProperty.revenue_monthly_est.toLocaleString()}/mo
+                      </div>
+                      {selectedProperty.revenue_annual_est && (
+                        <div className="text-xs text-white/60 mt-1">
+                          ≈ ${selectedProperty.revenue_annual_est.toLocaleString()}/yr
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-white/60 mb-1">Est. CoC</div>
+                      <div className="text-2xl font-bold text-emerald-400">
+                        {selectedProperty.coc_estimate}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => {
+                    setShowPropertyDrawer(false);
+                    openROICalculator(selectedProperty);
+                  }}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10"
+                >
+                  Run ROI Analysis →
+                </button>
+              )}
 
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-3">
@@ -1063,33 +1164,19 @@ function PropertyCard({ property, onToggleFavorite, compact = false, setRef }: {
           <span className="line-clamp-1">{property.city}, {property.state}</span>
         </div>
 
-        {/* Card Metrics Overlay */}
+        {/* Card ROI / CTA */}
         {!compact && (
-          <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
-            {property.revenue_monthly_est ? (
-              <>
-                <div className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5">
-                  <span className="text-white/60 text-[10px]">Projected</span>
-                  <div className="font-bold text-white text-xs">${property.revenue_monthly_est.toLocaleString()}/mo</div>
-                </div>
-                {property.coc_estimate ? (
-                  <div className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5">
-                    <span className="text-white/60 text-[10px]">Est. CoC</span>
-                    <div className="font-bold text-emerald-300 text-xs">{property.coc_estimate}%</div>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => window.dispatchEvent(new CustomEvent('openROI', { detail: property }))}
-                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-white/80 hover:bg-white/10 text-[11px]"
-                  >
-                    Run ROI →
-                  </button>
-                )}
-              </>
+          <div className="mb-3 text-xs">
+            {property.revenue_monthly_est && property.coc_estimate ? (
+              <div className="text-emerald-300/90">
+                Projected: <span className="font-semibold">${property.revenue_monthly_est.toLocaleString()}/mo</span>
+                {" · "}
+                CoC: <span className="font-semibold">{property.coc_estimate}%</span>
+              </div>
             ) : (
               <button 
                 onClick={() => window.dispatchEvent(new CustomEvent('openROI', { detail: property }))}
-                className="col-span-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-white/80 hover:bg-white/10 text-[11px]"
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-white/80 hover:bg-white/10 text-[11px]"
               >
                 Run ROI to unlock projections →
               </button>
