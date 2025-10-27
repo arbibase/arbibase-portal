@@ -400,7 +400,7 @@ function OperatorMetricCard({ icon, label, value, sublabel, color, href }: {
   };
 
   const content = (
-    <div className={`rounded-2xl border bg-gradient-to-br ${colorMap[color]} p-4 transition-all hover:scale-[1.02] ${href ? 'cursor-pointer' : ''}`}>
+    <div className={`rounded-2xl border bg-linear-to-br ${colorMap[color]} p-4 transition-all hover:scale-[1.02] ${href ? 'cursor-pointer' : ''}`}>
       <div className="mb-3 rounded-lg bg-white/10 p-2 text-white/90 w-fit">{icon}</div>
       <p className="text-2xl font-bold text-white mb-1">{value}</p>
       <p className="text-xs font-medium text-white/70">{label}</p>

@@ -31,7 +31,7 @@ export default function Header() {
         <div className="flex h-16 items-center justify-between gap-8">
           {/* Logo - FIXED */}
           <Link href="/" className="flex shrink-0 items-center gap-2.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-linear-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
               A
             </div>
             <span className="text-white/95 font-semibold tracking-[0.2px]">ArbiBase</span>
