@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   Compass, CheckCircle2, Star, Building2, ClipboardList, CircleCheckBig,
-  Mail, Sparkles, TrendingUp, Target
+  Mail, Sparkles, TrendingUp, Target, PieChart, Radar, Users
 } from "lucide-react";
 import SpotlightCarousel, { SpotlightCard } from "@/components/SpotlightCarousel";
 import MarketRadar from "@/components/MarketRadar";
@@ -249,6 +249,33 @@ export default function Dashboard() {
         </div>
         <MarketRadar />
       </section>
+
+      {/* Quick Access Tools - NEW */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+        <Link href="/portfolio" className="rounded-xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-colors">
+          <div className="flex items-center gap-3 mb-2">
+            <PieChart className="text-emerald-400" size={24} />
+            <h3 className="text-lg font-bold text-white">Portfolio Analytics</h3>
+          </div>
+          <p className="text-sm text-white/60">Track performance across all properties</p>
+        </Link>
+
+        <Link href="/market-radar" className="rounded-xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-colors">
+          <div className="flex items-center gap-3 mb-2">
+            <Radar className="text-emerald-400" size={24} />
+            <h3 className="text-lg font-bold text-white">Market Radar</h3>
+          </div>
+          <p className="text-sm text-white/60">Discover market opportunities and trends</p>
+        </Link>
+
+        <Link href="/lease-assistant" className="rounded-xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-colors">
+          <div className="flex items-center gap-3 mb-2">
+            <Users className="text-emerald-400" size={24} />
+            <h3 className="text-lg font-bold text-white">Lease Assistant</h3>
+          </div>
+          <p className="text-sm text-white/60">Manage tenants and lease lifecycle</p>
+        </Link>
+      </div>
 
       {/* Two-Column Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
