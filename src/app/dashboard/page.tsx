@@ -42,6 +42,21 @@ export default function DashboardPage() {
 
         if (!mounted) return;
         setUserProfile(profile || null);
+
+        // fetch spotlight items (hand-picked featured properties)
+        // keep this non-blocking relative to profile but within same load flow
+        const { data: spotlight, error: spotlightError } = await supabase
+          .from("spotlight_items")
+          .select("*")
+          .eq("is_active", true)
+          .order("priority", { ascending: false })
+          .limit(10);
+
+        if (spotlightError) {
+          console.warn("Error fetching spotlight items:", spotlightError);
+        } else if (mounted) {
+          setSpotlightItems(spotlight ?? []);
+        }
       } catch (err) {
         console.error("Error loading dashboard profile:", err);
       } finally {

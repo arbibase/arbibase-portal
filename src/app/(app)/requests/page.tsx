@@ -187,16 +187,16 @@ export default function RequestsPage() {
         <StatCard label="Verified" value={stats.verified} icon={<CheckCircle2 size={20} />} color="emerald" />
       </section>
 
-      {/* Search & Filters */}
+      {/* Filters */}
       <section className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
           <input
             type="text"
+            placeholder="Search by address, city, or state..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search requests..."
-            className="w-full rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+            className="input pl-10"
           />
         </div>
 

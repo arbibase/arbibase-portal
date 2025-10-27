@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { SignOut, User } from "@phosphor-icons/react";
-import Image from "next/image";
 
 export default function Header() {
   const [authed, setAuthed] = useState(false);
@@ -31,19 +30,11 @@ export default function Header() {
       <div className="mx-auto max-w-[1140px] px-6">
         <div className="flex h-16 items-center justify-between gap-8">
           {/* Logo - FIXED with gradient */}
-          <Link
-            href="/"
-            aria-label="ArbiBase home"
-            className="flex shrink-0 items-center gap-2.5"
-          >
-            {/* Icon (always visible) */}
-            <Image
-              src="/arbibase-logo.svg"
-              alt="ArbiBase"
-              width={120}
-              height={32}
-              className="h-8 w-auto"
-            />
+          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-linear-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
+              A
+            </div>
+            <span className="text-white/95 font-semibold tracking-[0.2px]">ArbiBase</span>
           </Link>
 
           {/* Main Navigation */}
@@ -79,16 +70,10 @@ export default function Header() {
                     className="absolute right-0 mt-2 w-48 rounded-xl border border-white/10 bg-[#0b141d]/95 backdrop-blur-xl shadow-lg"
                   >
                     <div className="py-1">
-                      <Link
-                        href="/account"
-                        className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-                      >
+                      <Link href="/account" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                         Profile
                       </Link>
-                      <Link
-                        href="/billing"
-                        className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-                      >
+                      <Link href="/billing" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                         Billing
                       </Link>
                       <div className="my-1 h-px bg-white/10" />
@@ -119,13 +104,7 @@ export default function Header() {
   );
 }
 
-function NavLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={href}
@@ -136,13 +115,7 @@ function NavLink({
   );
 }
 
-function MobileMenu({
-  authed,
-  onSignOut,
-}: {
-  authed: boolean;
-  onSignOut: () => void;
-}) {
+function MobileMenu({ authed, onSignOut }: { authed: boolean; onSignOut: () => void }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -156,56 +129,32 @@ function MobileMenu({
 
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setOpen(false)} />
           <div className="fixed right-4 top-20 z-50 w-56 rounded-xl border border-white/10 bg-[#0b141d] shadow-2xl">
             <nav className="py-2">
-              <Link
-                href="/properties"
-                className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-              >
+              <Link href="/properties" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                 Browse
               </Link>
-              <Link
-                href="/requests"
-                className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-              >
+              <Link href="/requests" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                 Requests
               </Link>
-              <Link
-                href="/favorites"
-                className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-              >
+              <Link href="/favorites" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                 Favorites
               </Link>
-              <Link
-                href="/dashboard"
-                className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-              >
+              <Link href="/dashboard" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                 Dashboard
               </Link>
-              <Link
-                href="/contact"
-                className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-              >
+              <Link href="/contact" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                 Contact
               </Link>
 
               {authed && (
                 <>
                   <div className="my-1 h-px bg-white/10" />
-                  <Link
-                    href="/account"
-                    className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-                  >
+                  <Link href="/account" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                     Profile
                   </Link>
-                  <Link
-                    href="/billing"
-                    className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5"
-                  >
+                  <Link href="/billing" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                     Billing
                   </Link>
                   <button
