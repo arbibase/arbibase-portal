@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import {
   Search, Filter, MapPin, Bed, Bath, DollarSign, Heart,
@@ -38,6 +37,7 @@ export default function PropertiesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
   const [showFilters, setShowFilters] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const googleMapRef = useRef<google.maps.Map | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,6 +49,18 @@ export default function PropertiesPage() {
   useEffect(() => {
     checkAuth();
   }, [router]);
+
+  useEffect(() => {
+    if (viewMode === "map" && mapRef.current && !googleMapRef.current) {
+      initializeMap();
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (viewMode === "map" && googleMapRef.current) {
+      updateMapMarkers();
+    }
+  }, [filteredProperties, viewMode]);
 
   async function checkAuth() {
     if (!supabase) {
@@ -131,6 +143,69 @@ export default function PropertiesPage() {
 
   async function toggleFavorite(propertyId: string) {
     console.log("Toggle favorite:", propertyId);
+  }
+
+  async function initializeMap() {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    
+    if (!apiKey) {
+      console.error('Google Maps API key not found in environment variables');
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+
+    if (!window.google) {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+      script.async = true;
+      script.onload = () => createMap();
+      script.onerror = () => {
+        console.error('Failed to load Google Maps script');
+      };
+      document.head.appendChild(script);
+    } else {
+      createMap();
+    }
+  }
+
+  function createMap() {
+    if (!mapRef.current) return;
+
+    try {
+      const map = new google.maps.Map(mapRef.current, {
+        center: { lat: 39.8283, lng: -98.5795 }, // Center of US
+        zoom: 4,
+        styles: [
+          { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+          { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+        ],
+        mapTypeControl: false,
+        streetViewControl: false,
+      });
+
+      googleMapRef.current = map;
+      updateMapMarkers();
+    } catch (error) {
+      console.error('Error creating map:', error);
+    }
+  }
+
+  function updateMapMarkers() {
+    if (!googleMapRef.current) return;
+
+    // Clear existing markers (implement marker management)
+    // Add new markers for filtered properties
+    filteredProperties.forEach(property => {
+      if (property.lat && property.lng) {
+        new google.maps.Marker({
+          position: { lat: property.lat, lng: property.lng },
+          map: googleMapRef.current!,
+          title: property.name,
+        });
+      }
+    });
   }
 
   if (loading) {
@@ -272,12 +347,15 @@ export default function PropertiesPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
           {/* Map - Left side, takes up more space */}
-          <div className="h-[600px] rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
-            <div className="text-center text-white/40">
-              <MapIcon size={48} className="mx-auto mb-2" />
-              <p className="text-sm">Map integration coming soon</p>
-              <p className="text-xs">Google Maps API key required</p>
-            </div>
+          <div ref={mapRef} className="h-[600px] rounded-2xl border border-white/10 bg-white/5">
+            {!googleMapRef.current && (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center text-white/40 max-w-md px-4">
+                  <MapIcon size={48} className="mx-auto mb-4" />
+                  <p className="text-sm">Loading map...</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Property List - Right side */}
