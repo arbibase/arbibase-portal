@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Head from "next/head";
 import { supabase } from "@/lib/supabase";
 import ROICalculator from "@/components/roi-calculator";
 import {
@@ -872,21 +871,14 @@ export default function PropertiesPage() {
 
   if (loading) {
     return (
-      <>
-        <Head>
-          <title>Verified Properties | ArbiBase Portal</title>
-          <meta name="description" content="Browse verified STR/MTR properties ready for arbitrage" />
-          <link rel="canonical" href="https://arbibase.com/properties" />
-        </Head>
-        <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-8">
-          <div className="flex min-h-[60vh] items-center justify-center">
-            <div className="text-center">
-              <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-r-transparent"></div>
-              <p className="mt-4 text-sm text-white/70">Loading properties...</p>
-            </div>
+      <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-8">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-r-transparent"></div>
+            <p className="mt-4 text-sm text-white/70">Loading properties...</p>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -908,114 +900,180 @@ export default function PropertiesPage() {
   }, []);
 
   return (
-    <>
-      <Head>
-        <title>Verified Properties | ArbiBase Portal</title>
-        <meta name="description" content="Browse verified STR/MTR properties ready for arbitrage" />
-        <meta property="og:title" content="Verified Properties | ArbiBase" />
-        <meta property="og:description" content="Discover landlord-approved properties for short-term rental arbitrage" />
-        <link rel="canonical" href="https://arbibase.com/properties" />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            "name": "ArbiBase",
-            "url": "https://arbibase.com",
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": "https://arbibase.com/properties?q={search_term_string}",
-              "query-input": "required name=search_term_string"
-            }
-          })}
-        </script>
-      </Head>
-      
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-8">
-        {/* Header */}
-        <header className="mb-4">
-          <div className="mb-2 flex items-center gap-2 text-sm text-white/50">
-            <Link href="/dashboard" className="hover:text-white/80">Dashboard</Link>
-            <span>/</span>
-            <span className="text-white/90">Properties</span>
+    <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-8">
+      {/* Header */}
+      <header className="mb-4">
+        <div className="mb-2 flex items-center gap-2 text-sm text-white/50">
+          <Link href="/dashboard" className="hover:text-white/80">Dashboard</Link>
+          <span>/</span>
+          <span className="text-white/90">Properties</span>
+        </div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white md:text-4xl">
+              Property Browser
+            </h1>
+            <p className="mt-1 text-white/60 flex items-center gap-2">
+              Discover verified arbitrage opportunities
+              <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
+                <TrendingUp size={12} /> +4% MoM ROI trend
+              </span>
+            </p>
           </div>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl font-extrabold text-white md:text-4xl">
-                Property Browser
-              </h1>
-              <p className="mt-1 text-white/60 flex items-center gap-2">
-                Discover verified arbitrage opportunities
-                <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
-                  <TrendingUp size={12} /> +4% MoM ROI trend
-                </span>
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                  viewMode === "grid"
-                    ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,.25)]"
-                    : "border border-white/10 bg-white/5 text-white/90 hover:bg-white/10"
-                }`}
-              >
-                <Grid size={16} className="inline mr-2" /> Grid
-              </button>
-              <button
-                onClick={() => setViewMode("map")}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                  viewMode === "map"
-                    ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,.25)]"
-                    : "border border-white/10 bg-white/5 text-white/90 hover:bg-white/10"
-                }`}
-              >
-                <MapIcon size={16} className="inline mr-2" /> Map
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Sticky Sort Header */}
-        <section className="sticky top-16 z-40 mb-4 rounded-xl border border-white/10 bg-[#0b141d]/95 backdrop-blur-md shadow-[0_10px_28px_-8px_rgba(0,0,0,.3)]">
-          <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-            <span className="text-sm text-white/70">
-              <span className="font-semibold text-white">{filteredProperties.length}</span> results
-            </span>
-            <span className="text-white/40">•</span>
-            <span className="text-sm text-white/60">Sorted by</span>
-
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-            >
-              <option value="recommended" className="bg-[#0b141d]">🎯 Recommended</option>
-              <option value="latest" className="bg-[#0b141d]">✨ Newest</option>
-              <option value="rent_asc" className="bg-[#0b141d]">💰 Rent ↑</option>
-              <option value="rent_desc" className="bg-[#0b141d]">💰 Rent ↓</option>
-            </select>
-
-            <div className="ml-auto hidden md:flex items-center gap-2 text-xs text-white/50">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-white/70">Pan map to update results</span>
-            </div>
-
-            {/* Mobile filter toggle */}
+          <div className="flex gap-2">
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/90 hover:bg-white/10"
+              onClick={() => setViewMode("grid")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                viewMode === "grid"
+                  ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,.25)]"
+                  : "border border-white/10 bg-white/5 text-white/90 hover:bg-white/10"
+              }`}
             >
-              <SlidersHorizontal size={14} />
-              Filters
+              <Grid size={16} className="inline mr-2" /> Grid
+            </button>
+            <button
+              onClick={() => setViewMode("map")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                viewMode === "map"
+                  ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,.25)]"
+                  : "border border-white/10 bg-white/5 text-white/90 hover:bg-white/10"
+              }`}
+            >
+              <MapIcon size={16} className="inline mr-2" /> Map
             </button>
           </div>
-        </section>
+        </div>
+      </header>
 
-        {/* Main Layout with Left Rail */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left Filter Rail - Desktop */}
-          <aside className="hidden lg:block col-span-3">
-            <div className="sticky top-[140px] rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4 shadow-[0_10px_28px_-8px_rgba(0,225,255,.08)]">
+      {/* Sticky Sort Header */}
+      <section className="sticky top-16 z-40 mb-4 rounded-xl border border-white/10 bg-[#0b141d]/95 backdrop-blur-md shadow-[0_10px_28px_-8px_rgba(0,0,0,.3)]">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+          <span className="text-sm text-white/70">
+            <span className="font-semibold text-white">{filteredProperties.length}</span> results
+          </span>
+          <span className="text-white/40">•</span>
+          <span className="text-sm text-white/60">Sorted by</span>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="recommended" className="bg-[#0b141d]">🎯 Recommended</option>
+            <option value="latest" className="bg-[#0b141d]">✨ Newest</option>
+            <option value="rent_asc" className="bg-[#0b141d]">💰 Rent ↑</option>
+            <option value="rent_desc" className="bg-[#0b141d]">💰 Rent ↓</option>
+          </select>
+
+          <div className="ml-auto hidden md:flex items-center gap-2 text-xs text-white/50">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-white/70">Pan map to update results</span>
+          </div>
+
+          {/* Mobile filter toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="lg:hidden inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/90 hover:bg-white/10"
+          >
+            <SlidersHorizontal size={14} />
+            Filters
+          </button>
+        </div>
+      </section>
+
+      {/* Main Layout with Left Rail */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Left Filter Rail - Desktop */}
+        <aside className="hidden lg:block col-span-3">
+          <div className="sticky top-[140px] rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4 shadow-[0_10px_28px_-8px_rgba(0,225,255,.08)]">
+            {/* Search */}
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search properties..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border border-white/15 bg-white/5 pl-10 pr-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              />
+            </div>
+
+            {/* Quick Chips */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setVerifiedOnly(!verifiedOnly)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                  verifiedOnly
+                    ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,.2)]"
+                    : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                }`}
+              >
+                <CheckCircle2 size={12} className="inline mr-1" />
+                Verified
+              </button>
+              <button
+                onClick={() => setSortBy("latest")}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                  sortBy === "latest"
+                    ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,.2)]"
+                    : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                }`}
+              >
+                <Sparkles size={12} className="inline mr-1" />
+                New
+              </button>
+            </div>
+
+            {/* Rent Range */}
+            <div>
+              <label className="mb-2 block text-xs font-medium text-white/70">Rent Range</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={minRent}
+                  onChange={(e) => setMinRent(e.target.value)}
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={maxRent}
+                  onChange={(e) => setMaxRent(e.target.value)}
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+              </div>
+            </div>
+
+            {/* Bedrooms */}
+            <div>
+              <label className="mb-2 block text-xs font-medium text-white/70">Bedrooms</label>
+              <select 
+                value={beds} 
+                onChange={(e) => setBeds(e.target.value)} 
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              >
+                <option value="any" className="bg-[#0b141d]">Any</option>
+                <option value="1" className="bg-[#0b141d]">1+</option>
+                <option value="2" className="bg-[#0b141d]">2+</option>
+                <option value="3" className="bg-[#0b141d]">3+</option>
+                <option value="4" className="bg-[#0b141d]">4+</option>
+              </select>
+            </div>
+          </div>
+        </aside>
+
+        {/* Mobile Filter Panel */}
+        {showFilters && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setShowFilters(false)}>
+            <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-[#0b141d] border-l border-white/10 p-4 space-y-4 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">Filters</h3>
+                <button onClick={() => setShowFilters(false)} className="text-white/60 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
               {/* Search */}
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
@@ -1034,7 +1092,7 @@ export default function PropertiesPage() {
                   onClick={() => setVerifiedOnly(!verifiedOnly)}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                     verifiedOnly
-                      ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,.2)]"
+                      ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300"
                       : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
                   }`}
                 >
@@ -1045,7 +1103,7 @@ export default function PropertiesPage() {
                   onClick={() => setSortBy("latest")}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                     sortBy === "latest"
-                      ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,.2)]"
+                      ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300"
                       : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
                   }`}
                 >
@@ -1091,359 +1149,270 @@ export default function PropertiesPage() {
                 </select>
               </div>
             </div>
-          </aside>
+          </div>
+        )}
 
-          {/* Mobile Filter Panel */}
-          {showFilters && (
-            <div className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setShowFilters(false)}>
-              <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-[#0b141d] border-l border-white/10 p-4 space-y-4 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-white">Filters</h3>
-                  <button onClick={() => setShowFilters(false)} className="text-white/60 hover:text-white">
-                    <X size={20} />
-                  </button>
-                </div>
+        {/* Main Content Area */}
+        <div className="col-span-12 lg:col-span-9">
+          {/* Market Chips - Show only in map view */}
+          {viewMode === "map" && (
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+              {topMarkets.map(market => (
+                <button
+                  key={market}
+                  onClick={() => setSelectedMarket(selectedMarket === market ? null : market)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${
+                    selectedMarket === market
+                      ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,.3)]"
+                      : "bg-white/5 text-white/80 hover:bg-white/10 border border-white/10"
+                  }`}
+                >
+                  {market}
+                  <span className="text-emerald-400 ml-2 font-semibold">▲{Math.floor(Math.random() * 30 + 50)}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
-                {/* Search */}
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Search properties..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-lg border border-white/15 bg-white/5 pl-10 pr-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          {/* Content Area */}
+          {viewMode === "grid" ? (
+            <>
+              <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {displayedProperties.map((property) => (
+                  <PropertyCard 
+                    key={property.id} 
+                    property={property} 
+                    onToggleFavorite={toggleFavorite}
+                    setRef={setCardRef(property.id)}
                   />
+                ))}
+              </section>
+              <div ref={loadMoreRef} className="h-4" />
+              {displayedProperties.length < filteredProperties.length && (
+                <div className="mt-8 text-center">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-r-transparent"></div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+              {/* Map with floating filters */}
+              <div className="relative">
+                <div ref={mapRef} className="h-[600px] rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_28px_-8px_rgba(0,225,255,.12)]">
+                  {!googleMapRef.current && (
+                    <div className="flex h-full items-center justify-center">
+                      <div className="text-center text-white/40 max-w-md px-4">
+                        <MapIcon size={48} className="mx-auto mb-4" />
+                        <p className="text-sm">Loading map...</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Quick Chips */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setVerifiedOnly(!verifiedOnly)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                      verifiedOnly
-                        ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300"
-                        : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-                    }`}
-                  >
-                    <CheckCircle2 size={12} className="inline mr-1" />
-                    Verified
-                  </button>
-                  <button
-                    onClick={() => setSortBy("latest")}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                      sortBy === "latest"
-                        ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300"
-                        : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-                    }`}
-                  >
-                    <Sparkles size={12} className="inline mr-1" />
-                    New
-                  </button>
-                </div>
-
-                {/* Rent Range */}
-                <div>
-                  <label className="mb-2 block text-xs font-medium text-white/70">Rent Range</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      value={minRent}
-                      onChange={(e) => setMinRent(e.target.value)}
-                      className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      value={maxRent}
-                      onChange={(e) => setMaxRent(e.target.value)}
-                      className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    />
+                {/* Floating Mini-Filter Panel */}
+                {googleMapRef.current && (
+                  <div className="absolute top-4 left-4 rounded-xl bg-[#0b141d]/95 backdrop-blur-md border border-white/10 p-3 space-y-3 w-64 shadow-[0_10px_28px_-8px_rgba(0,0,0,.4)]">
+                    <div>
+                      <label className="block text-xs font-medium text-white/70 mb-1">Quick Filters</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={verifiedOnly}
+                          onChange={(e) => setVerifiedOnly(e.target.checked)}
+                          className="h-4 w-4 rounded border-white/20 bg-white/5 text-emerald-500"
+                          id="map-verified"
+                        />
+                        <label htmlFor="map-verified" className="text-sm text-white/90 cursor-pointer">
+                          Verified only
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-white/70 mb-1">Rent Range</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="number"
+                          placeholder="Min"
+                          value={minRent}
+                          onChange={(e) => setMinRent(e.target.value)}
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          value={maxRent}
+                          onChange={(e) => setMaxRent(e.target.value)}
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* Bedrooms */}
-                <div>
-                  <label className="mb-2 block text-xs font-medium text-white/70">Bedrooms</label>
-                  <select 
-                    value={beds} 
-                    onChange={(e) => setBeds(e.target.value)} 
-                    className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  >
-                    <option value="any" className="bg-[#0b141d]">Any</option>
-                    <option value="1" className="bg-[#0b141d]">1+</option>
-                    <option value="2" className="bg-[#0b141d]">2+</option>
-                    <option value="3" className="bg-[#0b141d]">3+</option>
-                    <option value="4" className="bg-[#0b141d]">4+</option>
-                  </select>
-                </div>
+              {/* Property List */}
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {filteredProperties.map((property) => (
+                  <PropertyCard
+                    key={property.id}
+                    property={property}
+                    onToggleFavorite={toggleFavorite}
+                    compact
+                    setRef={setCardRef(property.id)}
+                  />
+                ))}
               </div>
             </div>
           )}
 
-          {/* Main Content Area */}
-          <div className="col-span-12 lg:col-span-9">
-            {/* Market Chips - Show only in map view */}
-            {viewMode === "map" && (
-              <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-                {topMarkets.map(market => (
-                  <button
-                    key={market}
-                    onClick={() => setSelectedMarket(selectedMarket === market ? null : market)}
-                    className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${
-                      selectedMarket === market
-                        ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,.3)]"
-                        : "bg-white/5 text-white/80 hover:bg-white/10 border border-white/10"
-                    }`}
-                  >
-                    {market}
-                    <span className="text-emerald-400 ml-2 font-semibold">▲{Math.floor(Math.random() * 30 + 50)}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Content Area */}
-            {viewMode === "grid" ? (
-              <>
-                <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {displayedProperties.map((property) => (
-                    <PropertyCard 
-                      key={property.id} 
-                      property={property} 
-                      onToggleFavorite={toggleFavorite}
-                      setRef={setCardRef(property.id)}
-                    />
-                  ))}
-                </section>
-                <div ref={loadMoreRef} className="h-4" />
-                {displayedProperties.length < filteredProperties.length && (
-                  <div className="mt-8 text-center">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-r-transparent"></div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-                {/* Map with floating filters */}
-                <div className="relative">
-                  <div ref={mapRef} className="h-[600px] rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_28px_-8px_rgba(0,225,255,.12)]">
-                    {!googleMapRef.current && (
-                      <div className="flex h-full items-center justify-center">
-                        <div className="text-center text-white/40 max-w-md px-4">
-                          <MapIcon size={48} className="mx-auto mb-4" />
-                          <p className="text-sm">Loading map...</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Floating Mini-Filter Panel */}
-                  {googleMapRef.current && (
-                    <div className="absolute top-4 left-4 rounded-xl bg-[#0b141d]/95 backdrop-blur-md border border-white/10 p-3 space-y-3 w-64 shadow-[0_10px_28px_-8px_rgba(0,0,0,.4)]">
-                      <div>
-                        <label className="block text-xs font-medium text-white/70 mb-1">Quick Filters</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={verifiedOnly}
-                            onChange={(e) => setVerifiedOnly(e.target.checked)}
-                            className="h-4 w-4 rounded border-white/20 bg-white/5 text-emerald-500"
-                            id="map-verified"
-                          />
-                          <label htmlFor="map-verified" className="text-sm text-white/90 cursor-pointer">
-                            Verified only
-                          </label>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-white/70 mb-1">Rent Range</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="number"
-                            placeholder="Min"
-                            value={minRent}
-                            onChange={(e) => setMinRent(e.target.value)}
-                            className="w-full rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                          />
-                          <input
-                            type="number"
-                            placeholder="Max"
-                            value={maxRent}
-                            onChange={(e) => setMaxRent(e.target.value)}
-                            className="w-full rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Property List */}
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {filteredProperties.map((property) => (
-                    <PropertyCard
-                      key={property.id}
-                      property={property}
-                      onToggleFavorite={toggleFavorite}
-                      compact
-                      setRef={setCardRef(property.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {filteredProperties.length === 0 && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
-                <Building2 size={48} className="mx-auto mb-4 text-white/20" />
-                <h3 className="mb-2 text-xl font-bold text-white">No properties found</h3>
-                <p className="text-white/60">Try adjusting your filters or search query</p>
-              </div>
-            )}
-          </div>
+          {filteredProperties.length === 0 && (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
+              <Building2 size={48} className="mx-auto mb-4 text-white/20" />
+              <h3 className="mb-2 text-xl font-bold text-white">No properties found</h3>
+              <p className="text-white/60">Try adjusting your filters or search query</p>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Property Preview Drawer */}
-        {showPropertyDrawer && selectedProperty && (
-          <div className="fixed inset-0 z-50 flex items-end justify-end">
-            <div 
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setShowPropertyDrawer(false)}
-            />
-            <div className="relative h-full w-full max-w-md bg-[#0b141d] border-l border-white/10 shadow-2xl overflow-y-auto">
-              {/* Header */}
-              <div className="sticky top-0 z-10 bg-[#0b141d]/95 backdrop-blur-sm border-b border-white/10 p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-white">{selectedProperty.name}</h2>
-                    <p className="text-sm text-white/60 flex items-center gap-1 mt-1">
-                      <MapPin size={14} />
-                      {selectedProperty.city}, {selectedProperty.state}
-                    </p>
+      {/* Property Preview Drawer */}
+      {showPropertyDrawer && selectedProperty && (
+        <div className="fixed inset-0 z-50 flex items-end justify-end">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowPropertyDrawer(false)}
+          />
+          <div className="relative h-full w-full max-w-md bg-[#0b141d] border-l border-white/10 shadow-2xl overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-[#0b141d]/95 backdrop-blur-sm border-b border-white/10 p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-white">{selectedProperty.name}</h2>
+                  <p className="text-sm text-white/60 flex items-center gap-1 mt-1">
+                    <MapPin size={14} />
+                    {selectedProperty.city}, {selectedProperty.state}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPropertyDrawer(false)}
+                  className="rounded-lg p-2 text-white/60 hover:bg-white/10"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-4">
+              {/* Hero Image */}
+              <div className="relative h-64 rounded-xl overflow-hidden bg-linear-to-br from-sky-800/40 to-emerald-800/40">
+                {selectedProperty.photo_url ? (
+                  <img src={selectedProperty.photo_url} alt={selectedProperty.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Building2 size={64} className="text-white/20" />
                   </div>
-                  <button
-                    onClick={() => setShowPropertyDrawer(false)}
-                    className="rounded-lg p-2 text-white/60 hover:bg-white/10"
-                  >
-                    <X size={20} />
-                  </button>
+                )}
+                {selectedProperty.verified && (
+                  <div className="absolute top-3 left-3">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
+                      <CheckCircle2 size={14} /> Verified
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* ROI Overlay */}
+              {selectedProperty.revenue_monthly_est && selectedProperty.coc_estimate ? (
+                <div className="rounded-xl bg-linear-to-br from-emerald-500/10 to-sky-500/10 border border-emerald-400/20 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-white/60 mb-1">Projected Revenue</div>
+                      <div className="text-2xl font-bold text-emerald-400">
+                        ${selectedProperty.revenue_monthly_est.toLocaleString()}/mo
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-white/60 mb-1">Est. CoC</div>
+                      <div className="text-2xl font-bold text-emerald-400">
+                        {selectedProperty.coc_estimate}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => {
+                    setShowPropertyDrawer(false);
+                    openROICalculator(selectedProperty);
+                  }}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10"
+                >
+                  Run ROI Analysis →
+                </button>
+              )}
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
+                  <div className="text-2xl font-bold text-white">{selectedProperty.beds}</div>
+                  <div className="text-xs text-white/60">Bedrooms</div>
+                </div>
+                <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
+                  <div className="text-2xl font-bold text-white">{selectedProperty.baths}</div>
+                  <div className="text-xs text-white/60">Bathrooms</div>
+                </div>
+                <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
+                  <div className="text-2xl font-bold text-emerald-400">${selectedProperty.rent.toLocaleString()}</div>
+                  <div className="text-xs text-white/60">Per Month</div>
                 </div>
               </div>
 
-              {/* Content */}
-              <div className="p-4 space-y-4">
-                {/* Hero Image */}
-                <div className="relative h-64 rounded-xl overflow-hidden bg-gradient-to-br from-sky-800/40 to-emerald-800/40">
-                  {selectedProperty.photo_url ? (
-                    <img src={selectedProperty.photo_url} alt={selectedProperty.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <Building2 size={64} className="text-white/20" />
-                    </div>
-                  )}
-                  {selectedProperty.verified && (
-                    <div className="absolute top-3 left-3">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
-                        <CheckCircle2 size={14} /> Verified
-                      </span>
-                    </div>
-                  )}
+              {/* Summary */}
+              {selectedProperty.summary && (
+                <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                  <h3 className="text-sm font-semibold text-white mb-2">About</h3>
+                  <p className="text-sm text-white/70">{selectedProperty.summary}</p>
                 </div>
+              )}
 
-                {/* ROI Overlay */}
-                {selectedProperty.revenue_monthly_est && selectedProperty.coc_estimate ? (
-                  <div className="rounded-xl bg-gradient-to-br from-emerald-500/10 to-sky-500/10 border border-emerald-400/20 p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-xs text-white/60 mb-1">Projected Revenue</div>
-                        <div className="text-2xl font-bold text-emerald-400">
-                          ${selectedProperty.revenue_monthly_est.toLocaleString()}/mo
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-white/60 mb-1">Est. CoC</div>
-                        <div className="text-2xl font-bold text-emerald-400">
-                          {selectedProperty.coc_estimate}%
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => {
-                      setShowPropertyDrawer(false);
-                      openROICalculator(selectedProperty);
-                    }}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10"
-                  >
-                    Run ROI Analysis →
-                  </button>
-                )}
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
-                    <div className="text-2xl font-bold text-white">{selectedProperty.beds}</div>
-                    <div className="text-xs text-white/60">Bedrooms</div>
-                  </div>
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
-                    <div className="text-2xl font-bold text-white">{selectedProperty.baths}</div>
-                    <div className="text-xs text-white/60">Bathrooms</div>
-                  </div>
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
-                    <div className="text-2xl font-bold text-emerald-400">${selectedProperty.rent.toLocaleString()}</div>
-                    <div className="text-xs text-white/60">Per Month</div>
-                  </div>
-                </div>
-
-                {/* Summary */}
-                {selectedProperty.summary && (
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                    <h3 className="text-sm font-semibold text-white mb-2">About</h3>
-                    <p className="text-sm text-white/70">{selectedProperty.summary}</p>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="space-y-2">
-                  <Link
-                    href={`/properties/${selectedProperty.id}`}
-                    className="flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,.25)]"
-                  >
-                    <ExternalLink size={16} />
-                    View Full Details
-                  </Link>
-                  <button 
-                    onClick={() => {
-                      setShowPropertyDrawer(false);
-                      openROICalculator(selectedProperty);
-                    }}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10"
-                  >
-                    Analyze ROI
-                  </button>
-                  <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10">
-                    Request Verification
-                  </button>
-                </div>
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                <Link
+                  href={`/properties/${selectedProperty.id}`}
+                  className="flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,.25)]"
+                >
+                  <ExternalLink size={16} />
+                  View Full Details
+                </Link>
+                <button 
+                  onClick={() => {
+                    setShowPropertyDrawer(false);
+                    openROICalculator(selectedProperty);
+                  }}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10"
+                >
+                  Analyze ROI
+                </button>
+                <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10">
+                  Request Verification
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ROI Calculator */}
-        {roiProperty && (
-          <ROICalculator
-            property={roiProperty}
-            isOpen={showROICalculator}
-            onClose={() => setShowROICalculator(false)}
-            onSave={handleROISave}
-          />
-        )}
-      </div>
-    </>
+      {/* ROI Calculator */}
+      {roiProperty && (
+        <ROICalculator
+          property={roiProperty}
+          isOpen={showROICalculator}
+          onClose={() => setShowROICalculator(false)}
+          onSave={handleROISave}
+        />
+      )}
+    </div>
   );
 }
 
@@ -1462,7 +1431,7 @@ function PropertyCard({ property, onToggleFavorite, compact = false, setRef }: {
       ref={setRef}
       className="rounded-xl border border-white/10 bg-white/5 overflow-hidden transition-all hover:bg-white/8 hover:border-emerald-400/30 hover:shadow-[0_10px_28px_-8px_rgba(52,211,153,0.18)]"
     >
-      <div className="relative h-40 overflow-hidden bg-gradient-to-br from-sky-800/40 to-emerald-800/40">
+      <div className="relative h-40 overflow-hidden bg-linear-to-br from-sky-800/40 to-emerald-800/40">
         {property.photo_url ? (
           <img
             src={property.photo_url}
