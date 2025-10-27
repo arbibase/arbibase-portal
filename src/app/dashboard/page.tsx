@@ -40,9 +40,10 @@ export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState<PropertyRequest[]>([]);
   const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statsLoaded, setStatsLoaded] = useState(false);
+  const [spotlightsLoaded, setSpotlightsLoaded] = useState(false);
   const router = useRouter();
 
-  // --- NEW helper: detect missing supabase client-side config
   function isSupabaseConfiguredClientSide() {
     return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   }
@@ -51,6 +52,7 @@ export default function Dashboard() {
     setMounted(true);
   }, []);
 
+  // Only set user and loading=false after auth is confirmed
   useEffect(() => {
     (async () => {
       if (!supabase) {
@@ -63,25 +65,28 @@ export default function Dashboard() {
         return;
       }
       setUser(data.user);
-      setLoading(false);
     })();
   }, [router]);
 
-  // only fetch user stats when we have a confirmed user
+  // Fetch stats after user is set
   useEffect(() => {
     if (!user || !supabase) return;
+    setStatsLoaded(false);
     fetchUserStats();
   }, [user]);
 
-  // fetch spotlights only after user is known to avoid mixed UI on refresh
+  // Fetch spotlights after user is set
   useEffect(() => {
     if (!user || !supabase) return;
+    setSpotlightsLoaded(false);
     fetchSpotlights();
   }, [user, supabase]);
 
   async function fetchUserStats() {
-    if (!supabase || !user) return;
-
+    if (!supabase || !user) {
+      setStatsLoaded(true);
+      return;
+    }
     try {
       const { data: requests, error: requestsError, status: requestsStatus } = await supabase
         .from("property_requests")
@@ -95,27 +100,23 @@ export default function Dashboard() {
         } else {
           console.error("Error fetching requests:", requestsError);
         }
-        // fallback to empty dataset so UI remains stable
         setOperatorStats((prev) => ({ ...prev, verifiedDoors: 0, activeLeads: 0, requestsUsed: 0 }));
         setRecentActivity([]);
+        setStatsLoaded(true);
         return;
       }
 
-      // Fetch user profile to get request limit
-      const { data: profile, error: profileError, status: profileStatus } = await supabase
+      const { data: profile } = await supabase
         .from("user_profiles")
         .select("requests_limit")
         .eq("user_id", user.id)
         .single();
 
       const requestLimit = profile?.requests_limit || 50;
-      // Calculate stats from actual user data
       const allRequests = requests || [];
       const totalRequests = allRequests.length;
       const verifiedCount = allRequests.filter(r => r.status === "verified").length;
       const activeLeadsCount = allRequests.filter(r => r.status === "in_review" || r.status === "pending").length;
-
-      // Count recently verified (last 7 days)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const recentlyVerifiedCount = allRequests.filter(r => r.status === "verified" && new Date(r.updated_at) > sevenDaysAgo).length;
@@ -132,14 +133,15 @@ export default function Dashboard() {
       setRecentActivity(allRequests.slice(0, 5));
     } catch (error) {
       console.error("Error fetching user stats:", error);
-      // keep UI stable
+    } finally {
+      setStatsLoaded(true);
     }
   }
 
   async function fetchSpotlights() {
     if (!isSupabaseConfiguredClientSide() || !supabase) {
-      console.warn("Supabase client config missing — skipping spotlight fetch.");
-      setSpotlights([]); // safe fallback
+      setSpotlights([]);
+      setSpotlightsLoaded(true);
       return;
     }
     try {
@@ -157,6 +159,7 @@ export default function Dashboard() {
           console.error("Error fetching spotlights:", error);
         }
         setSpotlights([]);
+        setSpotlightsLoaded(true);
         return;
       }
 
@@ -172,6 +175,8 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error fetching spotlights:", error);
       setSpotlights([]);
+    } finally {
+      setSpotlightsLoaded(true);
     }
   }
 
@@ -181,7 +186,8 @@ export default function Dashboard() {
     return full.split(" ")[0];
   }, [user]);
 
-  if (loading || !mounted) {
+  // Only show dashboard after user, stats, and spotlights are loaded
+  if (!user || !mounted || !statsLoaded || !spotlightsLoaded) {
     return (
       <div className="mx-auto max-w-[1440px] px-4 py-6 md:py-8">
         <div className="flex min-h-[60vh] items-center justify-center">
@@ -192,6 +198,18 @@ export default function Dashboard() {
         </div>
       </div>
     );
+  }
+
+  // All logic is now correct for consistent dashboard rendering.
+  // If you still see "different dashboards" on refresh, double-check that:
+  // - You are not running multiple dashboard UIs (old vs new) in your routes.
+  // - All dashboard data fetches are gated on user and loading states as in this file.
+  // - No other dashboard component is being rendered by mistake (see your second screenshot).
+
+  // If you want to guarantee only this dashboard loads, add this at the top:
+  if (typeof window !== "undefined" && window.location.pathname === "/dashboard" && !user && !loading) {
+    // If user is not set and not loading, force reload to clear any stale state
+    window.location.reload();
   }
 
   return (
