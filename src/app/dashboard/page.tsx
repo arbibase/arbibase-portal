@@ -124,7 +124,7 @@ export default function DashboardPage() {
             View All <ArrowRight size={16} />
           </Link>
         </div>
-        <SpotlightCarousel items={spotlightItems ?? undefined} />
+        {spotlightItems && <SpotlightCarousel items={spotlightItems} />}
       </section>
 
       {/* Market radar */}
