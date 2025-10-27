@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   Compass, CheckCircle2, Star, Building2, ClipboardList, CircleCheckBig,
-  Mail, Sparkles, TrendingUp, Target
+  Mail, Sparkles, TrendingUp, Target, PieChart, Users, Search
 } from "lucide-react";
 import SpotlightCarousel, { SpotlightCard } from "@/components/SpotlightCarousel";
 import MarketRadar from "@/components/MarketRadar";
@@ -38,6 +38,7 @@ export default function Dashboard() {
   });
   const [recentActivity, setRecentActivity] = useState<PropertyRequest[]>([]);
   const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -175,33 +176,36 @@ export default function Dashboard() {
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-6 md:py-8">
       {/* Enhanced Header */}
-      <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-sm text-white/50">
-            <Link href="/" className="hover:text-white/80">Home</Link>
-            <span>/</span>
-            <span className="text-white/90">Dashboard</span>
-          </div>
-          <h1 className="text-3xl font-extrabold text-white md:text-4xl">
-            Welcome back, {firstName} 👋
-          </h1>
-          <p className="mt-1 text-white/60">Your verified arbitrage command center</p>
+      <header className="mb-6">
+        <div className="mb-2 flex items-center gap-2 text-sm text-white/50">
+          <Link href="/" className="hover:text-white/80">Home</Link>
+          <span>/</span>
+          <span className="text-white/90">Dashboard</span>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/requests"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
-          >
-            <ClipboardList size={16} /> New Request
-          </Link>
-          <Link
-            href="/properties"
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_24px_rgba(16,185,129,.3)] hover:bg-emerald-600"
-          >
-            <Sparkles size={16} /> Browse Properties
-          </Link>
-        </div>
+        <h1 className="text-3xl font-extrabold text-white md:text-4xl mb-2">
+          Welcome back, {firstName} 👋
+        </h1>
+        <p className="text-white/60">Your verified arbitrage command center</p>
       </header>
+
+      {/* Search Bar */}
+      <section className="mb-8">
+        <div className="relative">
+          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search properties, markets, or deals..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && searchQuery.trim()) {
+                router.push(`/properties?search=${encodeURIComponent(searchQuery)}`);
+              }
+            }}
+            className="w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 py-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-400/50"
+          />
+        </div>
+      </section>
 
       {/* Updated Metrics Section with Links */}
       <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -239,7 +243,43 @@ export default function Dashboard() {
         />
       </section>
 
-      {/* Market Radar Section - NEW */}
+      {/* Feature Cards - NEW */}
+      <section className="mb-8 grid gap-4 md:grid-cols-3">
+        <Link
+          href="/portfolio"
+          className="group rounded-2xl border border-white/10 bg-white/5 p-6 transition-all hover:bg-white/8 hover:border-emerald-400/30 hover:shadow-[0_10px_28px_-8px_rgba(52,211,153,0.18)]"
+        >
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-all group-hover:scale-110 group-hover:bg-emerald-500/20">
+            <PieChart size={24} />
+          </div>
+          <h3 className="mb-2 text-lg font-bold text-white">Portfolio Analytics</h3>
+          <p className="text-sm text-white/60">Track performance across all properties</p>
+        </Link>
+
+        <Link
+          href="/market-radar"
+          className="group rounded-2xl border border-white/10 bg-white/5 p-6 transition-all hover:bg-white/8 hover:border-emerald-400/30 hover:shadow-[0_10px_28px_-8px_rgba(52,211,153,0.18)]"
+        >
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-all group-hover:scale-110 group-hover:bg-emerald-500/20">
+            <Target size={24} />
+          </div>
+          <h3 className="mb-2 text-lg font-bold text-white">Market Radar</h3>
+          <p className="text-sm text-white/60">Discover market opportunities and trends</p>
+        </Link>
+
+        <Link
+          href="/lease-assistant"
+          className="group rounded-2xl border border-white/10 bg-white/5 p-6 transition-all hover:bg-white/8 hover:border-emerald-400/30 hover:shadow-[0_10px_28px_-8px_rgba(52,211,153,0.18)]"
+        >
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-all group-hover:scale-110 group-hover:bg-emerald-500/20">
+            <Users size={24} />
+          </div>
+          <h3 className="mb-2 text-lg font-bold text-white">Lease Assistant</h3>
+          <p className="text-sm text-white/60">Manage tenants and lease lifecycle</p>
+        </Link>
+      </section>
+
+      {/* Market Radar Section - Keep existing but maybe remove since we have card above */}
       <section className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -254,79 +294,6 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content - 2/3 width */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Empty State OR Content */}
-          {operatorStats.verifiedDoors === 0 ? (
-            <section className="rounded-2xl border border-emerald-400/20 bg-linear-to-br from-emerald-500/10 via-transparent to-sky-500/10 p-8 text-center">
-              <div className="mb-4 mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20">
-                <Sparkles size={28} className="text-emerald-400" />
-              </div>
-              <h3 className="mb-2 text-xl font-bold text-white">Ready to find your first verified door?</h3>
-              <p className="mb-6 text-sm text-white/60">
-                Browse our curated inventory of landlord-approved properties—no cold calls, no surprises.
-              </p>
-              <div className="flex flex-wrap justify-center gap-3">
-                <Link
-                  href="/properties"
-                  className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-600"
-                >
-                  Browse Verified Properties
-                </Link>
-                <Link
-                  href="/requests"
-                  className="rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10"
-                >
-                  Request Verification
-                </Link>
-              </div>
-            </section>
-          ) : (
-            /* Recent Activity Table - Only show if user has properties */
-            <section className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-              <div className="border-b border-white/10 bg-white/5 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-white">Recent Activity</h2>
-                  <Link href="/requests" className="text-sm text-emerald-400 hover:text-emerald-300">
-                    View all →
-                  </Link>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                {recentActivity.length > 0 ? (
-                  <table className="w-full text-sm">
-                    <thead className="bg-white/5 text-white/70">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Property</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Updated</th>
-                        <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10">
-                      {recentActivity.map((request) => (
-                        <ActivityRow
-                          key={request.id}
-                          property={`${request.address}, ${request.city}`}
-                          type={request.property_type || "Request"}
-                          status={getStatusLabel(request.status)}
-                          statusColor={getStatusColor(request.status)}
-                          updated={getTimeAgo(request.updated_at)}
-                          href={`/requests/${request.id}`}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="px-6 py-12 text-center text-white/50">
-                    <p>No recent activity</p>
-                    <Link href="/request-verification" className="mt-2 inline-block text-sm text-emerald-400 hover:text-emerald-300">
-                      Submit your first request →
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
           {/* Trending Opportunities - Only show if we have data */}
           {spotlights.length > 0 && (
             <section>
@@ -429,45 +396,6 @@ function OperatorMetricCard({ icon, label, value, sublabel, color, href }: {
   );
 
   return href ? <Link href={href}>{content}</Link> : content;
-}
-
-function ActivityRow({ property, type, status, statusColor, updated, href }: {
-  property: string;
-  type: string;
-  status: string;
-  statusColor: string;
-  updated: string;
-  href: string;
-}) {
-  const statusColorMap: Record<string, string> = {
-    emerald: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-    amber: "bg-amber-500/10 text-amber-300 border-amber-500/20",
-    blue: "bg-blue-500/10 text-blue-300 border-blue-500/20",
-    violet: "bg-violet-500/10 text-violet-300 border-violet-500/20",
-    red: "bg-red-500/10 text-red-300 border-red-500/20"
-  };
-
-  return (
-    <tr className="hover:bg-white/5">
-      <td className="px-6 py-4">
-        <div>
-          <p className="font-medium text-white">{property}</p>
-          <p className="text-xs text-white/50">{type}</p>
-        </div>
-      </td>
-      <td className="px-6 py-4">
-        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColorMap[statusColor]}`}>
-          {status}
-        </span>
-      </td>
-      <td className="px-6 py-4 text-white/60">{updated}</td>
-      <td className="px-6 py-4 text-right">
-        <Link href={href} className="text-sm font-medium text-emerald-400 hover:text-emerald-300">
-          View →
-        </Link>
-      </td>
-    </tr>
-  );
 }
 
 const QUICK_ACTIONS = [
