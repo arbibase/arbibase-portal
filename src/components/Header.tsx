@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { SignOut, User } from "@phosphor-icons/react";
+import Image from "next/image";
 
 export default function Header() {
   const [authed, setAuthed] = useState(false);
@@ -30,12 +31,27 @@ export default function Header() {
       <div className="mx-auto max-w-[1140px] px-6">
         <div className="flex h-16 items-center justify-between gap-8">
           {/* Logo - FIXED with gradient */}
-          <Link href="/" className="flex shrink-0 items-center gap-2.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-linear-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
-              A
-            </div>
-            <span className="text-white/95 font-semibold tracking-[0.2px]">ArbiBase</span>
-          </Link>
+<Link href="/" aria-label="ArbiBase home" className="flex shrink-0 items-center gap-2.5">
+  {/* Icon (always visible) */}
+  <Image
+    src="/arbibase-mark.svg"
+    alt=""
+    width={28}
+    height={28}
+    priority
+    className="h-7 w-7"
+  />
+  {/* Wordmark (hide on very small screens to save space) */}
+  <Image
+    src="/arbibase-wordmark.svg"
+    alt="ArbiBase"
+    width={110}
+    height={20}
+    priority
+    className="hidden sm:block h-5 w-auto"
+  />
+</Link>
+
 
           {/* Main Navigation */}
           <nav className="hidden items-center gap-1 md:flex">

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   Compass, CheckCircle2, Star, Building2, ClipboardList, CircleCheckBig,
-  Mail, Sparkles, TrendingUp, Target, PieChart, Radar, Users
+  Mail, Sparkles, TrendingUp, Target, PieChart, Radar, Users, Search
 } from "lucide-react";
 import SpotlightCarousel, { SpotlightCard } from "@/components/SpotlightCarousel";
 import MarketRadar from "@/components/MarketRadar";
@@ -202,6 +202,18 @@ export default function Dashboard() {
           </Link>
         </div>
       </header>
+
+      {/* Quick Actions & Search */}
+      <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="relative lg:col-span-2">
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search properties, markets, or deals..."
+            className="w-full rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+          />
+        </div>
+      </section>
 
       {/* Updated Metrics Section with Links */}
       <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
