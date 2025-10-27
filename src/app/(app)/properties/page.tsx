@@ -193,10 +193,10 @@ export default function PropertiesPage() {
       <section className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="relative flex-1">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none z-10" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search by name, address, or city..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input pl-10 w-full"
@@ -238,13 +238,13 @@ export default function PropertiesPage() {
               <select 
                 value={beds} 
                 onChange={(e) => setBeds(e.target.value)} 
-                className="input bg-[#0b141d] text-white"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white"
               >
-                <option value="any">Any</option>
-                <option value="1">1+</option>
-                <option value="2">2+</option>
-                <option value="3">3+</option>
-                <option value="4">4+</option>
+                <option value="any" className="bg-[#0b141d]">Any</option>
+                <option value="1" className="bg-[#0b141d]">1+</option>
+                <option value="2" className="bg-[#0b141d]">2+</option>
+                <option value="3" className="bg-[#0b141d]">3+</option>
+                <option value="4" className="bg-[#0b141d]">4+</option>
               </select>
             </div>
             <div className="flex items-end">
@@ -262,28 +262,25 @@ export default function PropertiesPage() {
         )}
       </section>
 
-      {/* Content Area */}
+      {/* Content Area - FIXED MAP LAYOUT */}
       {viewMode === "grid" ? (
         <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProperties.map((property) => (
-            <PropertyCard
-              key={property.id}
-              property={property}
-              onToggleFavorite={toggleFavorite}
-            />
+            <PropertyCard key={property.id} property={property} onToggleFavorite={toggleFavorite} />
           ))}
         </section>
       ) : (
-        <section className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="h-[600px] rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
-              <div className="text-center text-white/40">
-                <MapIcon size={48} className="mx-auto mb-2" />
-                <p className="text-sm">Map integration coming soon</p>
-                <p className="text-xs">Google Maps API key required</p>
-              </div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+          {/* Map - Left side, takes up more space */}
+          <div className="h-[600px] rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+            <div className="text-center text-white/40">
+              <MapIcon size={48} className="mx-auto mb-2" />
+              <p className="text-sm">Map integration coming soon</p>
+              <p className="text-xs">Google Maps API key required</p>
             </div>
           </div>
+
+          {/* Property List - Right side */}
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
             {filteredProperties.map((property) => (
               <PropertyCard
@@ -294,7 +291,7 @@ export default function PropertiesPage() {
               />
             ))}
           </div>
-        </section>
+        </div>
       )}
 
       {filteredProperties.length === 0 && (

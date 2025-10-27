@@ -329,25 +329,63 @@ export default function RequestVerificationPage() {
                     </label>
                     <select
                       value={property.state}
-                      onChange={(e) =>
-                        updateProperty(index, "state", e.target.value)
-                      }
-                      className={`input bg-[#0b141d] text-white ${
-                        errors[index]?.state ? "border-red-500" : ""
-                      }`}
+                      onChange={(e) => updateProperty(index, "state", e.target.value)}
+                      className={`w-full rounded-xl border ${errors[index]?.state ? "border-red-500" : "border-white/15"} bg-white/5 px-3 py-2 text-sm text-white`}
                     >
                       <option value="" className="bg-[#0b141d]">Select state</option>
-                      <option value="TX" className="bg-[#0b141d]">Texas</option>
+                      <option value="AL" className="bg-[#0b141d]">Alabama</option>
+                      <option value="AK" className="bg-[#0b141d]">Alaska</option>
+                      <option value="AZ" className="bg-[#0b141d]">Arizona</option>
+                      <option value="AR" className="bg-[#0b141d]">Arkansas</option>
                       <option value="CA" className="bg-[#0b141d]">California</option>
-                      <option value="FL" className="bg-[#0b141d]">Florida</option>
-                      <option value="NY" className="bg-[#0b141d]">New York</option>
-                      <option value="WA" className="bg-[#0b141d]">Washington</option>
                       <option value="CO" className="bg-[#0b141d]">Colorado</option>
+                      <option value="CT" className="bg-[#0b141d]">Connecticut</option>
+                      <option value="DE" className="bg-[#0b141d]">Delaware</option>
+                      <option value="FL" className="bg-[#0b141d]">Florida</option>
+                      <option value="GA" className="bg-[#0b141d]">Georgia</option>
+                      <option value="HI" className="bg-[#0b141d]">Hawaii</option>
+                      <option value="ID" className="bg-[#0b141d]">Idaho</option>
+                      <option value="IL" className="bg-[#0b141d]">Illinois</option>
+                      <option value="IN" className="bg-[#0b141d]">Indiana</option>
+                      <option value="IA" className="bg-[#0b141d]">Iowa</option>
+                      <option value="KS" className="bg-[#0b141d]">Kansas</option>
+                      <option value="KY" className="bg-[#0b141d]">Kentucky</option>
+                      <option value="LA" className="bg-[#0b141d]">Louisiana</option>
+                      <option value="ME" className="bg-[#0b141d]">Maine</option>
+                      <option value="MD" className="bg-[#0b141d]">Maryland</option>
+                      <option value="MA" className="bg-[#0b141d]">Massachusetts</option>
+                      <option value="MI" className="bg-[#0b141d]">Michigan</option>
+                      <option value="MN" className="bg-[#0b141d]">Minnesota</option>
+                      <option value="MS" className="bg-[#0b141d]">Mississippi</option>
+                      <option value="MO" className="bg-[#0b141d]">Missouri</option>
+                      <option value="MT" className="bg-[#0b141d]">Montana</option>
+                      <option value="NE" className="bg-[#0b141d]">Nebraska</option>
+                      <option value="NV" className="bg-[#0b141d]">Nevada</option>
+                      <option value="NH" className="bg-[#0b141d]">New Hampshire</option>
+                      <option value="NJ" className="bg-[#0b141d]">New Jersey</option>
+                      <option value="NM" className="bg-[#0b141d]">New Mexico</option>
+                      <option value="NY" className="bg-[#0b141d]">New York</option>
+                      <option value="NC" className="bg-[#0b141d]">North Carolina</option>
+                      <option value="ND" className="bg-[#0b141d]">North Dakota</option>
+                      <option value="OH" className="bg-[#0b141d]">Ohio</option>
+                      <option value="OK" className="bg-[#0b141d]">Oklahoma</option>
+                      <option value="OR" className="bg-[#0b141d]">Oregon</option>
+                      <option value="PA" className="bg-[#0b141d]">Pennsylvania</option>
+                      <option value="RI" className="bg-[#0b141d]">Rhode Island</option>
+                      <option value="SC" className="bg-[#0b141d]">South Carolina</option>
+                      <option value="SD" className="bg-[#0b141d]">South Dakota</option>
+                      <option value="TN" className="bg-[#0b141d]">Tennessee</option>
+                      <option value="TX" className="bg-[#0b141d]">Texas</option>
+                      <option value="UT" className="bg-[#0b141d]">Utah</option>
+                      <option value="VT" className="bg-[#0b141d]">Vermont</option>
+                      <option value="VA" className="bg-[#0b141d]">Virginia</option>
+                      <option value="WA" className="bg-[#0b141d]">Washington</option>
+                      <option value="WV" className="bg-[#0b141d]">West Virginia</option>
+                      <option value="WI" className="bg-[#0b141d]">Wisconsin</option>
+                      <option value="WY" className="bg-[#0b141d]">Wyoming</option>
                     </select>
                     {errors[index]?.state && (
-                      <p className="mt-1 text-sm text-red-400">
-                        {errors[index].state}
-                      </p>
+                      <p className="mt-1 text-sm text-red-400">{errors[index].state}</p>
                     )}
                   </div>
 

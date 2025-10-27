@@ -10,6 +10,7 @@ import {
   Mail, Sparkles, TrendingUp, Target
 } from "lucide-react";
 import SpotlightCarousel, { SpotlightCard } from "@/components/SpotlightCarousel";
+import MarketRadar from "@/components/MarketRadar";
 
 type Spotlight = SpotlightCard;
 
@@ -24,12 +25,6 @@ type PropertyRequest = {
   property_type?: string;
 };
 
-function recentlyVerified(verified_at?: string) {
-  if (!verified_at) return false;
-  const t = Date.parse(verified_at);
-  return Number.isFinite(t) && Date.now() - t < 1000 * 60 * 60 * 24 * 14;
-}
-
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +37,7 @@ export default function Dashboard() {
     tasksOverdue: 0
   });
   const [recentActivity, setRecentActivity] = useState<PropertyRequest[]>([]);
+  const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -64,6 +60,11 @@ export default function Dashboard() {
     if (!user || !supabase) return;
     fetchUserStats();
   }, [user]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    fetchSpotlights();
+  }, [supabase]);
 
   async function fetchUserStats() {
     if (!supabase || !user) return;
@@ -122,35 +123,41 @@ export default function Dashboard() {
     }
   }
 
+  async function fetchSpotlights() {
+    if (!supabase) return;
+    try {
+      const { data: properties, error } = await supabase
+        .from("property_requests")
+        .select("address, city, state, status, updated_at, property_type")
+        .eq("status", "verified")
+        .order("updated_at", { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error("Error fetching spotlights:", error);
+        return;
+      }
+
+      const formattedSpotlights = (properties || []).map(prop => ({
+        name: `${prop.address}, ${prop.city}`,
+        location: `${prop.city}, ${prop.state}`,
+        status: "VERIFIED",
+        summary: `Verified property in ${prop.city}, ${prop.state}`,
+        photo: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400" // Placeholder, use actual property photo if available
+      }));
+
+      setSpotlights(formattedSpotlights);
+
+    } catch (error) {
+      console.error("Error fetching spotlights:", error);
+    }
+  }
+
   const firstName = useMemo(() => {
     const full = (user?.user_metadata?.full_name as string | undefined) || "";
     if (!full.trim()) return user?.email?.split("@")[0] || "there";
     return full.split(" ")[0];
   }, [user]);
-
-  const spotlights: Spotlight[] = [
-    {
-      name: "Miami Beach Condo",
-      location: "Miami, FL",
-      status: "HOT",
-      summary: "Verified landlord approval for 2BR/2BA in prime location",
-      photo: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400"
-    },
-    {
-      name: "Austin Downtown Loft",
-      location: "Austin, TX",
-      status: "NEW",
-      summary: "STR-friendly building with high occupancy rates",
-      photo: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400"
-    },
-    {
-      name: "Nashville Music Row",
-      location: "Nashville, TN",
-      status: "VERIFIED",
-      summary: "Premium location near entertainment district",
-      photo: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400"
-    }
-  ];
 
   if (loading) {
     return (
@@ -232,6 +239,17 @@ export default function Dashboard() {
         />
       </section>
 
+      {/* Market Radar Section - NEW */}
+      <section className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-white">Market Radar</h2>
+            <p className="text-sm text-white/60">Top performing markets right now</p>
+          </div>
+        </div>
+        <MarketRadar />
+      </section>
+
       {/* Two-Column Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content - 2/3 width */}
@@ -309,16 +327,18 @@ export default function Dashboard() {
             </section>
           )}
 
-          {/* Trending Opportunities */}
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Trending Opportunities</h2>
-              <Link href="/properties" className="text-sm text-emerald-400 hover:text-emerald-300">
-                View all →
-              </Link>
-            </div>
-            <SpotlightCarousel items={spotlights} />
-          </section>
+          {/* Trending Opportunities - Only show if we have data */}
+          {spotlights.length > 0 && (
+            <section>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white">Trending Opportunities</h2>
+                <Link href="/properties" className="text-sm text-emerald-400 hover:text-emerald-300">
+                  View all →
+                </Link>
+              </div>
+              <SpotlightCarousel items={spotlights} />
+            </section>
+          )}
         </div>
 
         {/* Sidebar - 1/3 width */}

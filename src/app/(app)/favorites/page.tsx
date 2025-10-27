@@ -224,10 +224,10 @@ export default function FavoritesPage() {
       {/* Stats & Filters - FIXED OVERLAP */}
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none z-10" />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search favorites..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="input pl-10 w-full"
@@ -239,11 +239,11 @@ export default function FavoritesPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="input min-w-[160px] bg-[#0b141d] text-white"
+            className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 pr-10 text-sm text-white"
           >
-            <option value="recent">Recently Saved</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
+            <option value="recent" className="bg-[#0b141d]">Recently Saved</option>
+            <option value="price-low" className="bg-[#0b141d]">Price: Low to High</option>
+            <option value="price-high" className="bg-[#0b141d]">Price: High to Low</option>
           </select>
         </div>
       </div>
