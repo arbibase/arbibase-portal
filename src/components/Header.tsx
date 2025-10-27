@@ -29,7 +29,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
       <div className="mx-auto max-w-[1140px] px-6">
         <div className="flex h-16 items-center justify-between gap-8">
-          {/* Logo - FIXED with proper Tailwind gradient */}
+          {/* Logo - FIXED with gradient */}
           <Link href="/" className="flex shrink-0 items-center gap-2.5">
             <div className="flex h-6 w-6 items-center justify-center rounded bg-linear-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
               A

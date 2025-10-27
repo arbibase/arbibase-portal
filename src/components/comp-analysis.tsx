@@ -178,7 +178,7 @@ export default function CompAnalysis({ property, isOpen, onClose }: CompAnalysis
                     <span className="text-white/90">${stats.p10Rate}/night</span>
                   </div>
                   <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-linear-to-r from-emerald-500/30 via-emerald-500 to-emerald-500/30" />
+                    <div className="h-full bg-gradient-to-r from-emerald-500/30 via-emerald-500 to-emerald-500/30" />
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Median</span>
