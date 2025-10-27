@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "../../lib/supabase";
-import SpotlightCarousel from "../../components/SpotlightCarousel";
-import MarketRadar from "../../components/MarketRadar";
+import { supabase } from "@/lib/supabase";
+import SpotlightCarousel from "@/components/SpotlightCarousel";
+import MarketRadar from "@/components/MarketRadar";
 import { Building2, Search, Calculator, Gift, ArrowRight } from "lucide-react";
 
 export default function DashboardPage() {

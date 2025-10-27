@@ -13,9 +13,9 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "baseUrl": ".",                  // <-- add this
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]            // <-- matches your src/
+      "@/*": ["./src/*"]
     },
     "plugins": [{ "name": "next" }]
   },
