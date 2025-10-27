@@ -4,7 +4,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { User, Bell, Mail } from "lucide-react";
+import { User, Bell, Mail, Lock, Github, Linkedin, Twitter, Globe, Star } from "lucide-react";
+
+interface UserProfile {
+  full_name: string;
+  phone: string;
+  email: string;
+  github_url: string;
+  linkedin_url: string;
+  twitter_url: string;
+  website_url: string;
+}
 
 export default function AccountPage() {
   const router = useRouter();
@@ -12,6 +22,25 @@ export default function AccountPage() {
   const [saving, setSaving] = useState(false);
   const [digestCadence, setDigestCadence] = useState<'off' | 'daily' | 'weekly'>('off');
   const [toast, setToast] = useState<string | null>(null);
+  
+  // Profile state
+  const [profile, setProfile] = useState<UserProfile>({
+    full_name: '',
+    phone: '',
+    email: '',
+    github_url: '',
+    linkedin_url: '',
+    twitter_url: '',
+    website_url: ''
+  });
+  
+  // Password state
+  const [passwordData, setPasswordData] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     checkAuth();
@@ -28,18 +57,91 @@ export default function AccountPage() {
       return;
     }
     
-    // Fetch user settings
-    const { data: profile } = await supabase
+    // Fetch user settings and profile
+    const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('digest_cadence')
+      .select('*')
       .eq('user_id', data.user.id)
       .single();
     
-    if (profile?.digest_cadence) {
-      setDigestCadence(profile.digest_cadence as 'off' | 'daily' | 'weekly');
+    if (userProfile) {
+      setDigestCadence(userProfile.digest_cadence as 'off' | 'daily' | 'weekly' || 'off');
+      setProfile({
+        full_name: userProfile.full_name || '',
+        phone: userProfile.phone || '',
+        email: data.user.email || '',
+        github_url: userProfile.github_url || '',
+        linkedin_url: userProfile.linkedin_url || '',
+        twitter_url: userProfile.twitter_url || '',
+        website_url: userProfile.website_url || ''
+      });
     }
     
     setLoading(false);
+  }
+
+  async function handleProfileSave() {
+    setSaving(true);
+    setToast(null);
+
+    try {
+      const response = await fetch('/api/settings/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile)
+      });
+
+      if (!response.ok) throw new Error('Failed to update profile');
+
+      setToast('Profile updated successfully!');
+      setTimeout(() => setToast(null), 3000);
+    } catch (error) {
+      console.error('Profile update error:', error);
+      setToast('Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePasswordChange() {
+    setPasswordError('');
+    
+    if (passwordData.new !== passwordData.confirm) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    
+    if (passwordData.new.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      return;
+    }
+
+    setSaving(true);
+    setToast(null);
+
+    try {
+      const response = await fetch('/api/settings/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          currentPassword: passwordData.current,
+          newPassword: passwordData.new 
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update password');
+      }
+
+      setPasswordData({ current: '', new: '', confirm: '' });
+      setToast('Password updated successfully!');
+      setTimeout(() => setToast(null), 3000);
+    } catch (error: any) {
+      setPasswordError(error.message || 'Failed to update password');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDigestChange(newCadence: 'off' | 'daily' | 'weekly') {
@@ -91,7 +193,7 @@ export default function AccountPage() {
         <h1 className="text-3xl font-extrabold text-white md:text-4xl">
           Account Settings
         </h1>
-        <p className="mt-1 text-white/60">Manage your preferences and notifications</p>
+        <p className="mt-1 text-white/60">Manage your profile, preferences and security</p>
       </header>
 
       <div className="mx-auto max-w-3xl space-y-6">
@@ -109,13 +211,206 @@ export default function AccountPage() {
               <User size={24} className="text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Profile</h2>
-              <p className="text-sm text-white/60">Your account information</p>
+              <h2 className="text-xl font-bold text-white">Profile Information</h2>
+              <p className="text-sm text-white/60">Update your personal details</p>
             </div>
           </div>
-          <p className="text-sm text-white/60">
-            Profile management coming soon. Contact your administrator for account changes.
-          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={profile.full_name}
+                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="John Doe"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={profile.email}
+                disabled
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white/50 cursor-not-allowed"
+              />
+              <p className="mt-1 text-xs text-white/40">Contact support to change your email</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                value={profile.phone}
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="+1 (555) 123-4567"
+              />
+            </div>
+
+            <button
+              onClick={handleProfileSave}
+              disabled={saving}
+              className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 font-medium text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? 'Saving...' : 'Save Profile'}
+            </button>
+          </div>
+        </section>
+
+        {/* Social Links Section */}
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-lg bg-blue-500/10 p-3">
+              <Globe size={24} className="text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Social Links</h2>
+              <p className="text-sm text-white/60">Connect your social profiles</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-white/80 mb-2">
+                <Github size={16} />
+                GitHub
+              </label>
+              <input
+                type="url"
+                value={profile.github_url}
+                onChange={(e) => setProfile({ ...profile, github_url: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="https://github.com/username"
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-white/80 mb-2">
+                <Linkedin size={16} />
+                LinkedIn
+              </label>
+              <input
+                type="url"
+                value={profile.linkedin_url}
+                onChange={(e) => setProfile({ ...profile, linkedin_url: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="https://linkedin.com/in/username"
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-white/80 mb-2">
+                <Twitter size={16} />
+                Twitter
+              </label>
+              <input
+                type="url"
+                value={profile.twitter_url}
+                onChange={(e) => setProfile({ ...profile, twitter_url: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="https://twitter.com/username"
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-white/80 mb-2">
+                <Globe size={16} />
+                Website
+              </label>
+              <input
+                type="url"
+                value={profile.website_url}
+                onChange={(e) => setProfile({ ...profile, website_url: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="https://yourwebsite.com"
+              />
+            </div>
+
+            <button
+              onClick={handleProfileSave}
+              disabled={saving}
+              className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 font-medium text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? 'Saving...' : 'Save Social Links'}
+            </button>
+          </div>
+        </section>
+
+        {/* Password Section */}
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-lg bg-red-500/10 p-3">
+              <Lock size={24} className="text-red-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Change Password</h2>
+              <p className="text-sm text-white/60">Update your password to keep your account secure</p>
+            </div>
+          </div>
+
+          {passwordError && (
+            <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+              {passwordError}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Current Password
+              </label>
+              <input
+                type="password"
+                value={passwordData.current}
+                onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="Enter current password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                New Password
+              </label>
+              <input
+                type="password"
+                value={passwordData.new}
+                onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="Enter new password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Confirm New Password
+              </label>
+              <input
+                type="password"
+                value={passwordData.confirm}
+                onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="Confirm new password"
+              />
+            </div>
+
+            <button
+              onClick={handlePasswordChange}
+              disabled={saving || !passwordData.current || !passwordData.new || !passwordData.confirm}
+              className="w-full rounded-lg bg-red-500 px-4 py-2.5 font-medium text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? 'Updating...' : 'Update Password'}
+            </button>
+          </div>
         </section>
 
         {/* Deal Digest Section */}
@@ -202,6 +497,23 @@ export default function AccountPage() {
           <p className="text-sm text-white/60">
             Additional notification settings coming soon.
           </p>
+        </section>
+
+        {/* Add new section for bookmarks */}
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-lg bg-amber-500/10 p-3">
+              <Star size={24} className="text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Saved Properties</h2>
+              <p className="text-sm text-white/60">Organize with custom tags and notes</p>
+            </div>
+          </div>
+          
+          {/* Tag management */}
+          {/* Custom folders */}
+          {/* Private notes per property */}
         </section>
       </div>
     </div>

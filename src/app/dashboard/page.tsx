@@ -8,7 +8,8 @@ import {
   Users, Activity, Building2, FileText, Shield, TrendingUp,
   Search, Filter, MoreVertical, CheckCircle2, XCircle, Clock,
   AlertCircle, Mail, Calendar, Eye, Edit, Trash2, Download,
-  BarChart3, DollarSign, UserCheck, UserX, Sparkles, Ban, UserCog, Loader2
+  BarChart3, DollarSign, UserCheck, UserX, Sparkles, Ban, UserCog, Loader2,
+  Bell, MapPin, Calculator, Gift
 } from "lucide-react";
 
 type Tier = "beta" | "pro" | "premium";
@@ -400,6 +401,84 @@ export default function AdminDashboard() {
       )}
       {activeTab === "requests" && <RequestsTab />}
       {activeTab === "properties" && <PropertiesTab />}
+      
+      {/* Add Premium Features Section after existing sections */}
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-white">Premium Features</h2>
+            <p className="text-sm text-white/60">Unlock powerful tools for your investment strategy</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Link
+            href="/saved-searches"
+            className="group rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-all"
+          >
+            <div className="mb-3 rounded-lg bg-blue-500/10 p-2 w-fit">
+              <Bell size={20} className="text-blue-400" />
+            </div>
+            <h3 className="font-semibold text-white mb-1">Saved Searches</h3>
+            <p className="text-xs text-white/60">Get alerts for matching properties</p>
+          </Link>
+
+          <Link
+            href="/properties/map"
+            className="group rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-all"
+          >
+            <div className="mb-3 rounded-lg bg-emerald-500/10 p-2 w-fit">
+              <MapPin size={20} className="text-emerald-400" />
+            </div>
+            <h3 className="font-semibold text-white mb-1">Map View</h3>
+            <p className="text-xs text-white/60">Explore properties visually</p>
+          </Link>
+
+          <Link
+            href="/analytics"
+            className="group rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-all"
+          >
+            <div className="mb-3 rounded-lg bg-violet-500/10 p-2 w-fit">
+              <BarChart3 size={20} className="text-violet-400" />
+            </div>
+            <h3 className="font-semibold text-white mb-1">Analytics</h3>
+            <p className="text-xs text-white/60">Track your portfolio performance</p>
+          </Link>
+
+          <Link
+            href="/calculators"
+            className="group rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-all"
+          >
+            <div className="mb-3 rounded-lg bg-cyan-500/10 p-2 w-fit">
+              <Calculator size={20} className="text-cyan-400" />
+            </div>
+            <h3 className="font-semibold text-white mb-1">Calculators</h3>
+            <p className="text-xs text-white/60">ROI, mortgage, cash flow tools</p>
+          </Link>
+
+          <Link
+            href="/referrals"
+            className="group rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-all"
+          >
+            <div className="mb-3 rounded-lg bg-amber-500/10 p-2 w-fit">
+              <Gift size={20} className="text-amber-400" />
+            </div>
+            <h3 className="font-semibold text-white mb-1">Referrals</h3>
+            <p className="text-xs text-white/60">Earn rewards for inviting friends</p>
+          </Link>
+
+          <Link
+            href="/market-reports"
+            className="group rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-all"
+          >
+            <div className="mb-3 rounded-lg bg-red-500/10 p-2 w-fit">
+              <FileText size={20} className="text-red-400" />
+            </div>
+            <h3 className="font-semibold text-white mb-1">Market Reports</h3>
+            <p className="text-xs text-white/60">Weekly insights and trends</p>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
