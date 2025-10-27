@@ -22,8 +22,12 @@ type PortfolioMetrics = {
 type PropertyPerformance = {
   id: string;
   name: string;
+  address: string;
   city: string;
   state: string;
+  zipCode: string;
+  latitude: number;
+  longitude: number;
   monthlyRevenue: number;
   monthlyProfit: number;
   occupancy: number;
@@ -73,11 +77,11 @@ export default function PortfolioPage() {
   function loadPortfolioData() {
     // Mock data - replace with real API calls
     const mockMetrics: PortfolioMetrics = {
-      totalDoors: 8,
-      totalRevenue: 28450,
-      totalProfit: 12680,
-      avgCoc: 38,
-      avgOccupancy: 74,
+      totalDoors: 15,
+      totalRevenue: 52840,
+      totalProfit: 23120,
+      avgCoc: 36,
+      avgOccupancy: 76,
       revenueChange: 12.5,
       profitChange: 8.3,
     };
@@ -86,8 +90,12 @@ export default function PortfolioPage() {
       {
         id: "1",
         name: "Downtown Loft",
+        address: "301 West Avenue",
         city: "Austin",
         state: "TX",
+        zipCode: "78701",
+        latitude: 30.2672,
+        longitude: -97.7431,
         monthlyRevenue: 4250,
         monthlyProfit: 1850,
         occupancy: 82,
@@ -96,8 +104,12 @@ export default function PortfolioPage() {
       {
         id: "2",
         name: "Sunset Villa",
+        address: "1845 Bayshore Boulevard",
         city: "Tampa",
         state: "FL",
+        zipCode: "33606",
+        latitude: 27.9506,
+        longitude: -82.4572,
         monthlyRevenue: 3890,
         monthlyProfit: 1620,
         occupancy: 76,
@@ -106,8 +118,12 @@ export default function PortfolioPage() {
       {
         id: "3",
         name: "Music City Condo",
+        address: "215 Broadway",
         city: "Nashville",
         state: "TN",
+        zipCode: "37201",
+        latitude: 36.1627,
+        longitude: -86.7816,
         monthlyRevenue: 3650,
         monthlyProfit: 1580,
         occupancy: 71,
@@ -116,13 +132,173 @@ export default function PortfolioPage() {
       {
         id: "4",
         name: "Beach House",
+        address: "6789 Gulf Boulevard",
         city: "Tampa",
         state: "FL",
+        zipCode: "33706",
+        latitude: 27.7676,
+        longitude: -82.7857,
         monthlyRevenue: 3420,
         monthlyProfit: 1320,
         occupancy: 68,
         trend: "down",
         alert: "Occupancy below forecast",
+      },
+      {
+        id: "5",
+        name: "Riverside Retreat",
+        address: "412 Colorado Street",
+        city: "Austin",
+        state: "TX",
+        zipCode: "78701",
+        latitude: 30.2656,
+        longitude: -97.7467,
+        monthlyRevenue: 4650,
+        monthlyProfit: 2100,
+        occupancy: 88,
+        trend: "up",
+      },
+      {
+        id: "6",
+        name: "Desert Oasis",
+        address: "2334 East Camelback Road",
+        city: "Phoenix",
+        state: "AZ",
+        zipCode: "85016",
+        latitude: 33.5092,
+        longitude: -112.0396,
+        monthlyRevenue: 3200,
+        monthlyProfit: 1450,
+        occupancy: 79,
+        trend: "stable",
+      },
+      {
+        id: "7",
+        name: "Mountain View Lodge",
+        address: "1875 Larimer Street",
+        city: "Denver",
+        state: "CO",
+        zipCode: "80202",
+        latitude: 39.7539,
+        longitude: -104.9971,
+        monthlyRevenue: 4100,
+        monthlyProfit: 1780,
+        occupancy: 73,
+        trend: "up",
+      },
+      {
+        id: "8",
+        name: "Historic Bungalow",
+        address: "1456 12th Avenue South",
+        city: "Nashville",
+        state: "TN",
+        zipCode: "37203",
+        latitude: 36.1445,
+        longitude: -86.7892,
+        monthlyRevenue: 2890,
+        monthlyProfit: 1240,
+        occupancy: 65,
+        trend: "down",
+        alert: "Below average performance",
+      },
+      {
+        id: "9",
+        name: "Lakefront Estate",
+        address: "7823 Turkey Lake Road",
+        city: "Orlando",
+        state: "FL",
+        zipCode: "32819",
+        latitude: 28.4589,
+        longitude: -81.4756,
+        monthlyRevenue: 5200,
+        monthlyProfit: 2350,
+        occupancy: 91,
+        trend: "up",
+      },
+      {
+        id: "10",
+        name: "Urban Studio",
+        address: "98 Rainey Street",
+        city: "Austin",
+        state: "TX",
+        zipCode: "78701",
+        latitude: 30.2589,
+        longitude: -97.7389,
+        monthlyRevenue: 2100,
+        monthlyProfit: 920,
+        occupancy: 84,
+        trend: "stable",
+      },
+      {
+        id: "11",
+        name: "Scottsdale Villa",
+        address: "7114 East Stetson Drive",
+        city: "Phoenix",
+        state: "AZ",
+        zipCode: "85251",
+        latitude: 33.4942,
+        longitude: -111.9261,
+        monthlyRevenue: 3800,
+        monthlyProfit: 1650,
+        occupancy: 77,
+        trend: "up",
+      },
+      {
+        id: "12",
+        name: "Gulf Coast Paradise",
+        address: "3456 Beach Drive NE",
+        city: "Tampa",
+        state: "FL",
+        zipCode: "33701",
+        latitude: 27.7676,
+        longitude: -82.6403,
+        monthlyRevenue: 4500,
+        monthlyProfit: 1950,
+        occupancy: 81,
+        trend: "up",
+      },
+      {
+        id: "13",
+        name: "Capitol View Apartment",
+        address: "625 Lincoln Street",
+        city: "Denver",
+        state: "CO",
+        zipCode: "80203",
+        latitude: 39.7267,
+        longitude: -104.9811,
+        monthlyRevenue: 3100,
+        monthlyProfit: 1380,
+        occupancy: 70,
+        trend: "stable",
+      },
+      {
+        id: "14",
+        name: "Southern Charm Cottage",
+        address: "2308 Franklin Pike",
+        city: "Nashville",
+        state: "TN",
+        zipCode: "37204",
+        latitude: 36.1156,
+        longitude: -86.7967,
+        monthlyRevenue: 2650,
+        monthlyProfit: 1150,
+        occupancy: 62,
+        trend: "down",
+        alert: "Maintenance issues reported",
+      },
+      {
+        id: "15",
+        name: "Tech District Loft",
+        address: "500 East 4th Street",
+        city: "Austin",
+        state: "TX",
+        zipCode: "78701",
+        latitude: 30.2645,
+        longitude: -97.7389,
+        monthlyRevenue: 3890,
+        monthlyProfit: 1680,
+        occupancy: 86,
+        trend: "up",
       },
     ];
 
@@ -284,7 +460,10 @@ export default function PortfolioPage() {
               {properties.map((property) => (
                 <tr key={property.id} className="border-b border-white/10 last:border-0">
                   <td className="py-4 text-sm font-semibold text-white">{property.name}</td>
-                  <td className="py-4 text-sm text-white/70">{property.city}, {property.state}</td>
+                  <td className="py-4 text-sm text-white/70">
+                    {property.address}<br />
+                    <span className="text-xs text-white/50">{property.city}, {property.state} {property.zipCode}</span>
+                  </td>
                   <td className="py-4 text-right text-sm text-white">${property.monthlyRevenue.toLocaleString()}</td>
                   <td className="py-4 text-right text-sm text-emerald-400">${property.monthlyProfit.toLocaleString()}</td>
                   <td className="py-4 text-right text-sm text-white">{property.occupancy}%</td>
