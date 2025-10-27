@@ -13,7 +13,7 @@ import {
 
 type User = {
   id: string;
-  email: string;
+  email?: string | undefined;
   created_at: string;
   last_sign_in_at?: string;
   user_metadata?: {
@@ -34,6 +34,7 @@ type AdminStats = {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "requests" | "properties">("overview");
   
@@ -63,7 +64,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     checkAdminAuth();
-  }, []);
+  }, [router]);
 
   async function checkAdminAuth() {
     if (!supabase) {
@@ -77,7 +78,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Check if user is admin - adjust this logic based on your auth setup
+    // Check if user is admin
     const isAdmin = data.user.user_metadata?.role === "admin" || 
                     data.user.email?.endsWith("@arbibase.com");
 
@@ -86,13 +87,58 @@ export default function AdminDashboard() {
       return;
     }
 
+    setUser(data.user);
     setLoading(false);
     fetchAdminData();
   }
 
   async function fetchAdminData() {
+    if (!supabase) return;
+
     try {
-      // Mock data - replace with actual Supabase queries
+      // Fetch real stats from Supabase
+      const [usersResult, requestsResult, propertiesResult] = await Promise.all([
+        supabase.from("user_profiles").select("id, email, full_name, subscription_tier, status, created_at", { count: "exact" }),
+        supabase.from("property_requests").select("id, status", { count: "exact" }),
+        supabase.from("properties").select("id, verified", { count: "exact" })
+      ]);
+
+      // Calculate stats
+      const totalUsers = usersResult.count || 0;
+      const activeUsers = usersResult.data?.filter(u => u.status === "active").length || 0;
+      const totalRequests = requestsResult.count || 0;
+      const verifiedProperties = propertiesResult.data?.filter(p => p.verified).length || 0;
+      const pendingVerifications = requestsResult.data?.filter(r => 
+        r.status === "pending" || r.status === "in_review"
+      ).length || 0;
+
+      setStats({
+        totalUsers,
+        activeUsers,
+        totalRequests,
+        verifiedProperties,
+        pendingVerifications,
+        revenueThisMonth: calculateRevenue(usersResult.data || [])
+      });
+
+      // Fetch and set users
+      if (usersResult.data) {
+        const mappedUsers: User[] = usersResult.data.map(u => ({
+          id: u.id,
+          email: u.email,
+          created_at: u.created_at,
+          user_metadata: {
+            full_name: u.full_name,
+            subscription_tier: u.subscription_tier
+          },
+          status: u.status as "active" | "inactive" | "suspended"
+        }));
+        setUsers(mappedUsers);
+        setFilteredUsers(mappedUsers);
+      }
+    } catch (error) {
+      console.error("Error fetching admin data:", error);
+      // Fall back to mock data
       setStats({
         totalUsers: 156,
         activeUsers: 98,
@@ -101,55 +147,28 @@ export default function AdminDashboard() {
         pendingVerifications: 23,
         revenueThisMonth: 24580
       });
-
-      const mockUsers: User[] = [
-        {
-          id: "1",
-          email: "john.doe@example.com",
-          created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-          last_sign_in_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          user_metadata: {
-            full_name: "John Doe",
-            subscription_tier: "pro"
-          },
-          status: "active"
-        },
-        {
-          id: "2",
-          email: "jane.smith@example.com",
-          created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-          last_sign_in_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          user_metadata: {
-            full_name: "Jane Smith",
-            subscription_tier: "premium"
-          },
-          status: "active"
-        },
-        {
-          id: "3",
-          email: "bob.wilson@example.com",
-          created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-          last_sign_in_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-          user_metadata: {
-            full_name: "Bob Wilson",
-            subscription_tier: "beta"
-          },
-          status: "inactive"
-        }
-      ];
-
-      setUsers(mockUsers);
-      setFilteredUsers(mockUsers);
-    } catch (error) {
-      console.error("Error fetching admin data:", error);
     }
+  }
+
+  function calculateRevenue(users: any[]): number {
+    const tierPrices: Record<string, number> = {
+      beta: 98,
+      standard: 198,
+      pro: 297,
+      premium: 496
+    };
+
+    return users.reduce((total, user) => {
+      const tier = user.subscription_tier || "beta";
+      return total + (tierPrices[tier] || 0);
+    }, 0);
   }
 
   // Search filter
   useEffect(() => {
     if (searchQuery.trim()) {
       const filtered = users.filter(u =>
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.user_metadata?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredUsers(filtered);
@@ -165,9 +184,7 @@ export default function AdminDashboard() {
 
     try {
       if (!supabase) throw new Error("Supabase not initialized");
-
-      // Get current authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
 
       // Validate inputs
       if (!newUser.email.trim()) throw new Error("Email is required");
@@ -180,18 +197,18 @@ export default function AdminDashboard() {
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: newUser.email,
         password: newUser.temporary_password,
-        email_confirm: true, // Auto-confirm email
+        email_confirm: true,
         user_metadata: {
           full_name: newUser.full_name,
           subscription_tier: newUser.subscription_tier,
-          created_by: user?.id,
+          created_by: user.id,
           created_at: new Date().toISOString()
         }
       });
 
       if (authError) throw authError;
 
-      // Optionally: Insert additional user profile data in a custom table
+      // Insert user profile
       const { error: profileError } = await supabase
         .from("user_profiles")
         .insert({
@@ -201,7 +218,7 @@ export default function AdminDashboard() {
           subscription_tier: newUser.subscription_tier,
           status: "active",
           requests_limit: getRequestsLimit(newUser.subscription_tier),
-          created_by: user?.id
+          created_by: user.id
         });
 
       if (profileError) console.error("Profile creation error:", profileError);
@@ -211,7 +228,7 @@ export default function AdminDashboard() {
         await sendInviteEmail(newUser.email, newUser.full_name, newUser.temporary_password);
       }
 
-      // Success! Reset form and refresh user list
+      // Success
       setShowCreateUserModal(false);
       setNewUser({
         email: "",

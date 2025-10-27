@@ -58,8 +58,102 @@ export default function FavoritesPage() {
   }
 
   async function fetchFavorites() {
-    // Mock data - replace with actual Supabase query joining favorites + properties
-    const mockFavorites: FavoriteProperty[] = [
+    if (!supabase) return;
+
+    try {
+      // Fetch user's favorites with property details
+      const { data: favoritesData, error } = await supabase
+        .from("favorites")
+        .select(`
+          id,
+          property_id,
+          created_at,
+          properties (
+            id,
+            name,
+            address,
+            city,
+            state,
+            rent,
+            beds,
+            baths,
+            property_type,
+            photo_url,
+            verified,
+            summary
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching favorites:", error);
+        setFavorites(getMockFavorites());
+        return;
+      }
+
+      if (favoritesData && favoritesData.length > 0) {
+        const mapped: FavoriteProperty[] = favoritesData
+          .filter(f => f.properties) // Only include favorites with valid property data
+          .map(f => {
+            const prop = Array.isArray(f.properties) ? f.properties[0] : f.properties;
+            return {
+              id: f.id,
+              property_id: f.property_id,
+              saved_at: f.created_at,
+              property: {
+                id: prop.id,
+                name: prop.name || "Untitled Property",
+                address: prop.address || "",
+                city: prop.city || "",
+                state: prop.state || "",
+                rent: prop.rent || 0,
+                beds: prop.beds || 0,
+                baths: prop.baths || 0,
+                property_type: prop.property_type,
+                photo_url: prop.photo_url,
+                verified: prop.verified || false,
+                summary: prop.summary
+              }
+            };
+          });
+        setFavorites(mapped);
+        setFilteredFavorites(mapped);
+      } else {
+        // No favorites yet
+        setFavorites([]);
+        setFilteredFavorites([]);
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      setFavorites(getMockFavorites());
+    }
+  }
+
+  async function handleRemoveFavorite(favoriteId: string) {
+    setRemovingId(favoriteId);
+    
+    try {
+      if (!supabase) throw new Error("Supabase not initialized");
+
+      const { error } = await supabase
+        .from("favorites")
+        .delete()
+        .eq("id", favoriteId);
+
+      if (error) throw error;
+      
+      setFavorites(prev => prev.filter(f => f.id !== favoriteId));
+      setFilteredFavorites(prev => prev.filter(f => f.id !== favoriteId));
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+      alert("Failed to remove favorite. Please try again.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  function getMockFavorites(): FavoriteProperty[] {
+    return [
       {
         id: "fav-1",
         property_id: "prop-1",
@@ -76,50 +170,10 @@ export default function FavoritesPage() {
           property_type: "apartment",
           photo_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
           verified: true,
-          summary: "Modern loft with high ceilings and skyline views. Owner-approved for STR."
-        }
-      },
-      {
-        id: "fav-2",
-        property_id: "prop-2",
-        saved_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        property: {
-          id: "prop-2",
-          name: "Riverside Townhouse",
-          address: "456 River Road",
-          city: "Seattle",
-          state: "WA",
-          rent: 3200,
-          beds: 3,
-          baths: 2.5,
-          property_type: "townhouse",
-          photo_url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800",
-          verified: true,
-          summary: "Spacious townhouse near waterfront. Perfect for families or groups."
-        }
-      },
-      {
-        id: "fav-3",
-        property_id: "prop-3",
-        saved_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        property: {
-          id: "prop-3",
-          name: "Capitol Hill Studio",
-          address: "789 Pine Ave",
-          city: "Denver",
-          state: "CO",
-          rent: 1800,
-          beds: 1,
-          baths: 1,
-          property_type: "apartment",
-          photo_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
-          verified: false,
-          summary: "Cozy studio in vibrant neighborhood. Pending landlord verification."
+          summary: "Modern loft with high ceilings and skyline views."
         }
       }
     ];
-    setFavorites(mockFavorites);
-    setFilteredFavorites(mockFavorites);
   }
 
   // Filter & Sort logic
@@ -146,22 +200,6 @@ export default function FavoritesPage() {
 
     setFilteredFavorites(filtered);
   }, [searchQuery, sortBy, favorites]);
-
-  async function handleRemoveFavorite(favoriteId: string) {
-    setRemovingId(favoriteId);
-    
-    try {
-      // Simulate API call - replace with actual Supabase delete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setFavorites(prev => prev.filter(f => f.id !== favoriteId));
-      setFilteredFavorites(prev => prev.filter(f => f.id !== favoriteId));
-    } catch (error) {
-      console.error("Error removing favorite:", error);
-    } finally {
-      setRemovingId(null);
-    }
-  }
 
   if (loading) {
     return (

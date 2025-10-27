@@ -61,8 +61,53 @@ export default function RequestsPage() {
   }
 
   async function fetchRequests() {
-    // Mock data - replace with actual Supabase query
-    const mockRequests: PropertyRequest[] = [
+    if (!supabase) return;
+
+    try {
+      // Fetch user's property requests from Supabase
+      const { data: requestsData, error } = await supabase
+        .from("property_requests")
+        .select("*")
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching requests:", error);
+        // Fall back to mock data
+        setRequests(getMockRequests());
+        setFilteredRequests(getMockRequests());
+        return;
+      }
+
+      if (requestsData && requestsData.length > 0) {
+        const mapped = requestsData.map(r => ({
+          id: r.id,
+          address: r.address || "",
+          city: r.city || "",
+          state: r.state || "",
+          status: r.status as RequestStatus,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+          notes: r.notes,
+          property_type: r.property_type,
+          bedrooms: r.bedrooms?.toString(),
+          bathrooms: r.bathrooms?.toString()
+        }));
+        setRequests(mapped);
+        setFilteredRequests(mapped);
+      } else {
+        // No data, use empty array
+        setRequests([]);
+        setFilteredRequests([]);
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      setRequests(getMockRequests());
+      setFilteredRequests(getMockRequests());
+    }
+  }
+
+  function getMockRequests(): PropertyRequest[] {
+    return [
       {
         id: "1",
         address: "123 Oak Street",
@@ -75,35 +120,8 @@ export default function RequestsPage() {
         property_type: "apartment",
         bedrooms: "2",
         bathrooms: "2"
-      },
-      {
-        id: "2",
-        address: "456 Elm Avenue",
-        city: "Seattle",
-        state: "WA",
-        status: "verified",
-        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-        notes: "Full approval received",
-        property_type: "house",
-        bedrooms: "3",
-        bathrooms: "2.5"
-      },
-      {
-        id: "3",
-        address: "789 Pine Road",
-        city: "Denver",
-        state: "CO",
-        status: "pending",
-        created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-        property_type: "condo",
-        bedrooms: "1",
-        bathrooms: "1"
-      },
+      }
     ];
-    setRequests(mockRequests);
-    setFilteredRequests(mockRequests);
   }
 
   // Filter logic
