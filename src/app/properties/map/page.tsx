@@ -126,6 +126,7 @@ export default function MapViewPage() {
             properties={properties}
             selectedProperty={selectedProperty}
             onPropertySelect={setSelectedProperty}
+            mapView={mapView}
           />
 
           {/* Map Controls */}

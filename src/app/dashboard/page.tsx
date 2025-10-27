@@ -62,15 +62,17 @@ export default function Dashboard() {
     })();
   }, [router]);
 
+  // only fetch user stats when we have a confirmed user
   useEffect(() => {
     if (!user || !supabase) return;
     fetchUserStats();
   }, [user]);
 
+  // fetch spotlights only after user is known to avoid mixed UI on refresh
   useEffect(() => {
-    if (!supabase) return;
+    if (!user || !supabase) return;
     fetchSpotlights();
-  }, [supabase]);
+  }, [user, supabase]);
 
   async function fetchUserStats() {
     if (!supabase || !user) return;
@@ -165,7 +167,7 @@ export default function Dashboard() {
     return full.split(" ")[0];
   }, [user]);
 
-  if (loading) {
+  if (loading || !mounted) {
     return (
       <div className="mx-auto max-w-[1440px] px-4 py-6 md:py-8">
         <div className="flex min-h-[60vh] items-center justify-center">

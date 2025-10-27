@@ -84,6 +84,12 @@ export default function PropertiesPage() {
   const [page, setPage] = useState(1);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+  // Helper: detect missing supabase config (client may still exist but REST will 404)
+  function isSupabaseConfiguredClientSide() {
+    // NEXT_PUBLIC_* are exposed to client builds — if these are missing, REST calls will fail.
+    return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  }
+
   useEffect(() => {
     checkAuth();
   }, [router]);
@@ -169,21 +175,43 @@ export default function PropertiesPage() {
   }, [properties, sortBy, viewMode, searchQuery, minRent, maxRent, beds, verifiedOnly]);
 
   async function checkAuth() {
+    // If Supabase environment not configured, fail fast and use mock data
+    if (!isSupabaseConfiguredClientSide()) {
+      console.warn("Supabase client config missing (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY). Using mock properties.");
+      setProperties(getMockProperties());
+      setFilteredProperties(sortProps(getMockProperties(), sortBy));
+      setLoading(false);
+      return;
+    }
+
     if (!supabase) {
       router.replace("/login");
       return;
     }
-    const { data } = await supabase.auth.getUser();
-    if (!data?.user) {
-      router.replace("/login");
-      return;
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (!data?.user) {
+        router.replace("/login");
+        return;
+      }
+      setLoading(false);
+      fetchProperties();
+    } catch (err) {
+      // If auth.check fails, fallback to mock to avoid crashing the page
+      console.warn("Auth check failed, falling back to mock properties.", err);
+      setProperties(getMockProperties());
+      setFilteredProperties(sortProps(getMockProperties(), sortBy));
+      setLoading(false);
     }
-    setLoading(false);
-    fetchProperties();
   }
 
   async function fetchProperties() {
-    if (!supabase) return;
+    // Guard: if supabase isn't configured on the client, use mock data
+    if (!isSupabaseConfiguredClientSide() || !supabase) {
+      setProperties(getMockProperties());
+      setFilteredProperties(sortProps(getMockProperties(), sortBy));
+      return;
+    }
 
     try {
       let query = supabase
@@ -199,24 +227,31 @@ export default function PropertiesPage() {
           .lte("lng", mapBounds.e);
       }
 
-      const { data, error } = await query;
+      const { data, error, status } = await query;
 
       if (error) {
-        console.error("Error fetching properties:", error);
+        // PostgREST returns 404 when the table is missing or route is incorrect.
+        if (status === 404) {
+          console.warn("Supabase table 'properties' not found (404). Falling back to mock data.");
+        } else {
+          console.error("Error fetching properties:", error);
+        }
         setProperties(getMockProperties());
         setFilteredProperties(sortProps(getMockProperties(), sortBy));
         return;
       }
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         setProperties(data as Property[]);
         setFilteredProperties(sortProps(data as Property[], sortBy));
       } else {
+        // No rows returned — fallback to mock for a friendly UX
         setProperties(getMockProperties());
         setFilteredProperties(sortProps(getMockProperties(), sortBy));
       }
-    } catch (error) {
-      console.error("Unexpected error:", error);
+    } catch (err: any) {
+      // Catch unexpected runtime errors (network, parsing, etc.)
+      console.error("Unexpected error fetching properties, using mock data:", err?.message || err);
       setProperties(getMockProperties());
       setFilteredProperties(sortProps(getMockProperties(), sortBy));
     }
@@ -689,10 +724,26 @@ export default function PropertiesPage() {
   }
 
   function loadMarkerClusterer() {
+    // make loading tolerant: if script fails, continue without clusterer
     const script = document.createElement("script");
     script.src = "https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js";
     script.async = true;
-    script.onload = () => createMap();
+    script.onload = () => {
+      try {
+        createMap();
+      } catch (e) {
+        console.error("Error creating map after markerclusterer loaded:", e);
+      }
+    };
+    script.onerror = () => {
+      console.warn("MarkerClusterer script failed to load. Map will still attempt to initialize without clustering.");
+      // try to create the map anyway
+      try {
+        createMap();
+      } catch (e) {
+        console.error("Error creating map without markerclusterer:", e);
+      }
+    };
     document.head.appendChild(script);
   }
 
@@ -789,9 +840,11 @@ export default function PropertiesPage() {
       });
 
       googleMapRef.current = map;
+      // update markers with whatever data we have (mock or real)
       updateMapMarkers();
     } catch (error) {
       console.error('Error creating map:', error);
+      // don't throw — keep the UI usable
     }
   }
 
