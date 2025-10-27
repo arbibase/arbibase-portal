@@ -34,12 +34,13 @@ export default function Dashboard() {
   ]);
 
   const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
-  const [metrics, setMetrics] = useState({
-    portfolioValue: 0,
-    monthlyRevenue: 0,
-    occupancyRate: 0,
-    avgROI: 0,
-    growthRate: 0
+  const [operatorStats, setOperatorStats] = useState({
+    verifiedDoors: 0,
+    activeLeads: 0,
+    requestsUsed: 0,
+    requestsLimit: 50, // Based on tier
+    recentlyVerified: 0, // Last 7 days
+    tasksOverdue: 0
   });
   const router = useRouter();
 
@@ -168,13 +169,14 @@ export default function Dashboard() {
         ]);
       }
 
-      // NEW: Fetch advanced metrics
-      setMetrics({
-        portfolioValue: 2450000,
-        monthlyRevenue: 125000,
-        occupancyRate: 94.5,
-        avgROI: 18.2,
-        growthRate: 24.5
+      // Replace fake portfolio metrics with real operator KPIs
+      setOperatorStats({
+        verifiedDoors: 0, // Will populate from DB
+        activeLeads: 0,
+        requestsUsed: 0,
+        requestsLimit: 50, // Based on subscription tier
+        recentlyVerified: 0,
+        tasksOverdue: 0
       });
     })();
   }, [user]);
@@ -198,7 +200,7 @@ export default function Dashboard() {
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-6 md:py-8">
-      {/* Enhanced Header with Breadcrumbs & Actions */}
+      {/* Enhanced Header */}
       <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm text-white/50">
@@ -209,91 +211,67 @@ export default function Dashboard() {
           <h1 className="text-3xl font-extrabold text-white md:text-4xl">
             Welcome back, {firstName} 👋
           </h1>
-          <p className="mt-1 text-white/60">Here's what's happening with your portfolio today</p>
+          <p className="mt-1 text-white/60">Your verified arbitrage command center</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10">
-            <Calendar size={16} /> Schedule Review
-          </button>
+          <Link
+            href="/requests"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
+          >
+            <ClipboardList size={16} /> View Requests
+          </Link>
           <Link
             href="/properties"
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_24px_rgba(16,185,129,.3)] hover:bg-emerald-600"
           >
-            <Sparkles size={16} /> Add Property
+            <Sparkles size={16} /> Browse Properties
           </Link>
         </div>
       </header>
 
-      {/* Executive Summary Cards - F500 Style */}
-      <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <MetricCard
-          icon={<DollarSign size={20} />}
-          label="Portfolio Value"
-          value={`$${(metrics.portfolioValue / 1000000).toFixed(2)}M`}
-          change="+12.5%"
-          trend="up"
+      {/* Operator-Focused Stats - Reality-Based */}
+      <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <OperatorMetricCard
+          icon={<Building2 size={20} />}
+          label="Verified Doors"
+          value={operatorStats.verifiedDoors}
+          sublabel="Ready to onboard"
           color="emerald"
+          href="/properties?filter=verified"
         />
-        <MetricCard
+        <OperatorMetricCard
           icon={<TrendingUp size={20} />}
-          label="Monthly Revenue"
-          value={`$${(metrics.monthlyRevenue / 1000).toFixed(0)}K`}
-          change="+8.3%"
-          trend="up"
+          label="Active Leads"
+          value={operatorStats.activeLeads}
+          sublabel="In your pipeline"
           color="blue"
+          href="/requests?status=active"
         />
-        <MetricCard
-          icon={<Activity size={20} />}
-          label="Occupancy Rate"
-          value={`${metrics.occupancyRate}%`}
-          change="+2.1%"
-          trend="up"
-          color="violet"
-        />
-        <MetricCard
+        <OperatorMetricCard
           icon={<Target size={20} />}
-          label="Avg ROI"
-          value={`${metrics.avgROI}%`}
-          change="+1.4%"
-          trend="up"
-          color="amber"
+          label="Requests Used"
+          value={`${operatorStats.requestsUsed}/${operatorStats.requestsLimit}`}
+          sublabel="This month"
+          color="violet"
+          href="/requests"
         />
-        <MetricCard
-          icon={<BarChart3 size={20} />}
-          label="YoY Growth"
-          value={`${metrics.growthRate}%`}
-          change="+5.2%"
-          trend="up"
+        <OperatorMetricCard
+          icon={<Sparkles size={20} />}
+          label="New This Week"
+          value={operatorStats.recentlyVerified}
+          sublabel="Verified properties"
           color="cyan"
+          href="/properties?filter=new"
         />
       </section>
 
-      {/* Two-Column Layout for Data Density */}
+      {/* Two-Column Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content - 2/3 width */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Performance Overview with Chart */}
+          {/* Pipeline Status */}
           <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Performance Overview</h2>
-              <select className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white">
-                <option>Last 30 Days</option>
-                <option>Last 90 Days</option>
-                <option>Year to Date</option>
-              </select>
-            </div>
-            {/* Placeholder for chart - integrate with recharts or similar */}
-            <div className="h-[280px] rounded-xl bg-linear-to-br from-emerald-500/5 to-sky-500/5 flex items-center justify-center border border-white/5">
-              <div className="text-center">
-                <BarChart3 size={48} className="mx-auto mb-3 text-white/20" />
-                <p className="text-sm text-white/40">Revenue & Occupancy Chart</p>
-              </div>
-            </div>
-          </section>
-
-          {/* Pipeline & Deal Flow */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <h2 className="mb-4 text-lg font-bold text-white">Deal Pipeline</h2>
+            <h2 className="mb-4 text-lg font-bold text-white">Your Pipeline</h2>
             <div className="grid gap-3 sm:grid-cols-3">
               {kpis.map((kpi) => (
                 <div key={kpi.label} className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -308,7 +286,34 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Spotlight Properties - Enhanced */}
+          {/* Empty State / Onboarding */}
+          {operatorStats.verifiedDoors === 0 && (
+            <section className="rounded-2xl border border-emerald-400/20 bg-linear-to-br from-emerald-500/10 to-sky-500/10 p-8 text-center">
+              <div className="mb-4 mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20">
+                <Sparkles size={28} className="text-emerald-400" />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-white">Ready to find your first verified door?</h3>
+              <p className="mb-6 text-sm text-white/60">
+                Browse our curated inventory of landlord-approved properties—no cold calls, no surprises.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link
+                  href="/properties"
+                  className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-600"
+                >
+                  Browse Verified Properties
+                </Link>
+                <Link
+                  href="/requests"
+                  className="rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10"
+                >
+                  Request Verification
+                </Link>
+              </div>
+            </section>
+          )}
+
+          {/* Trending Opportunities */}
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Trending Opportunities</h2>
@@ -319,7 +324,7 @@ export default function Dashboard() {
             <SpotlightCarousel items={spotlights} />
           </section>
 
-          {/* Recent Activity - Enhanced Table */}
+          {/* Recent Activity */}
           <section className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
             <div className="border-b border-white/10 bg-white/5 px-6 py-4">
               <h2 className="text-lg font-bold text-white">Recent Activity</h2>
@@ -335,40 +340,41 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {/* swap with your live activity rows later */}
-                  <ActivityRow
-                    property="123 Oak St, Austin"
-                    type="Request"
-                    status="In Review"
-                    statusColor="amber"
-                    updated="2 hours ago"
-                    href="/requests"
-                  />
-                  <ActivityRow
-                    property="Riverfront Rowhomes"
-                    type="Property"
-                    status="Verified"
-                    statusColor="emerald"
-                    updated="Yesterday"
-                    href="/properties"
-                  />
-                  <ActivityRow
-                    property="Downtown Lofts"
-                    type="Deal"
-                    status="Pending"
-                    statusColor="blue"
-                    updated="3 days ago"
-                    href="/deals"
-                  />
+                  {operatorStats.verifiedDoors === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-white/50">
+                        No activity yet. Start by browsing properties or submitting a request.
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      <ActivityRow
+                        property="123 Oak St, Austin"
+                        type="Request"
+                        status="In Review"
+                        statusColor="amber"
+                        updated="2 hours ago"
+                        href="/requests"
+                      />
+                      <ActivityRow
+                        property="Riverfront Rowhomes"
+                        type="Property"
+                        status="Verified"
+                        statusColor="emerald"
+                        updated="Yesterday"
+                        href="/properties"
+                      />
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>
           </section>
         </div>
 
-        {/* Sidebar - 1/3 width */}
+        {/* Sidebar */}
         <aside className="space-y-6">
-          {/* Quick Actions - Enhanced */}
+          {/* Quick Actions */}
           <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <h3 className="mb-4 text-base font-bold text-white">Quick Actions</h3>
             <div className="space-y-2">
@@ -387,32 +393,23 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Alerts & Notifications */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">Alerts</h3>
-              <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-400">3</span>
+          {/* Beta Platform Info */}
+          <section className="rounded-2xl border border-sky-400/20 bg-linear-to-br from-sky-500/10 to-violet-500/10 p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="rounded-lg bg-sky-500/20 px-2 py-1 text-xs font-semibold text-sky-300">
+                BETA
+              </div>
             </div>
-            <div className="space-y-3">
-              <AlertItem
-                icon={<AlertCircle size={16} />}
-                message="2 properties need renewal"
-                time="2h ago"
-                color="amber"
-              />
-              <AlertItem
-                icon={<Users size={16} />}
-                message="New team member added"
-                time="5h ago"
-                color="blue"
-              />
-              <AlertItem
-                icon={<Zap size={16} />}
-                message="System maintenance tonight"
-                time="1d ago"
-                color="violet"
-              />
-            </div>
+            <h3 className="mb-2 text-base font-bold text-white">You're an Early Adopter</h3>
+            <p className="mb-4 text-xs text-white/60">
+              Help us build the future of verified STR/MTR arbitrage. Your feedback shapes the platform.
+            </p>
+            <Link
+              href="mailto:feedback@arbibase.com"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-300 hover:bg-sky-500/20"
+            >
+              <Mail size={14} /> Share Feedback
+            </Link>
           </section>
 
           {/* Support CTA */}
@@ -422,7 +419,7 @@ export default function Dashboard() {
             </div>
             <h3 className="mb-2 text-base font-bold text-white">Need Assistance?</h3>
             <p className="mb-4 text-xs text-white/60">
-              Our concierge team is available 24/7 to help you scale
+              Our concierge team is on standby for verified property sourcing & market insights
             </p>
             <Link
               href="mailto:support@arbibase.com"
@@ -437,36 +434,33 @@ export default function Dashboard() {
   );
 }
 
-// New Components for F500-grade dashboard
+// Updated Component for Operator Metrics
 
-function MetricCard({ icon, label, value, change, trend, color }: {
+function OperatorMetricCard({ icon, label, value, sublabel, color, href }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
-  change: string;
-  trend: "up" | "down";
+  value: string | number;
+  sublabel: string;
   color: string;
+  href?: string;
 }) {
   const colorMap: Record<string, string> = {
-    emerald: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-    blue: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
-    violet: "from-violet-500/10 to-violet-500/5 border-violet-500/20",
-    amber: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-    cyan: "from-cyan-500/10 to-cyan-500/5 border-cyan-500/20"
+    emerald: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/30",
+    blue: "from-blue-500/10 to-blue-500/5 border-blue-500/20 hover:border-blue-500/30",
+    violet: "from-violet-500/10 to-violet-500/5 border-violet-500/20 hover:border-violet-500/30",
+    cyan: "from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/30"
   };
 
-  return (
-    <div className={`rounded-2xl border bg-linear-to-br ${colorMap[color]} p-4`}>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="rounded-lg bg-white/10 p-2 text-white/90">{icon}</div>
-        <span className={`text-xs font-semibold ${trend === "up" ? "text-emerald-400" : "text-red-400"}`}>
-          {change}
-        </span>
-      </div>
+  const content = (
+    <div className={`rounded-2xl border bg-linear-to-br ${colorMap[color]} p-4 transition-all hover:scale-[1.02]`}>
+      <div className="mb-3 rounded-lg bg-white/10 p-2 text-white/90 w-fit">{icon}</div>
+      <p className="text-2xl font-bold text-white mb-1">{value}</p>
       <p className="text-xs font-medium text-white/70">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-white">{value}</p>
+      <p className="text-[11px] text-white/50">{sublabel}</p>
     </div>
   );
+
+  return href ? <Link href={href}>{content}</Link> : content;
 }
 
 function ActivityRow({ property, type, status, statusColor, updated, href }: {
@@ -477,28 +471,23 @@ function ActivityRow({ property, type, status, statusColor, updated, href }: {
   updated: string;
   href: string;
 }) {
-  const statusColors: Record<string, string> = {
-    emerald: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-    amber: "bg-amber-500/10 text-amber-300 border-amber-500/20",
-    blue: "bg-blue-500/10 text-blue-300 border-blue-500/20"
+  const statusColorMap: Record<string, string> = {
+    emerald: "bg-emerald-500/20 text-emerald-300",
+    amber: "bg-amber-500/20 text-amber-300",
+    blue: "bg-blue-500/20 text-blue-300",
   };
 
   return (
     <tr className="hover:bg-white/5">
+      <td className="px-6 py-4 text-white/90">{property}</td>
       <td className="px-6 py-4">
-        <div>
-          <p className="font-medium text-white">{property}</p>
-          <p className="text-xs text-white/50">{type}</p>
-        </div>
-      </td>
-      <td className="px-6 py-4">
-        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColors[statusColor]}`}>
+        <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusColorMap[statusColor]}`}>
           {status}
         </span>
       </td>
-      <td className="px-6 py-4 text-white/60">{updated}</td>
+      <td className="px-6 py-4 text-white/70">{updated}</td>
       <td className="px-6 py-4 text-right">
-        <Link href={href} className="text-sm font-medium text-emerald-400 hover:text-emerald-300">
+        <Link href={href} className="text-emerald-400 hover:text-emerald-300">
           View →
         </Link>
       </td>
@@ -506,56 +495,9 @@ function ActivityRow({ property, type, status, statusColor, updated, href }: {
   );
 }
 
-function AlertItem({ icon, message, time, color }: {
-  icon: React.ReactNode;
-  message: string;
-  time: string;
-  color: string;
-}) {
-  const colorMap: Record<string, string> = {
-    amber: "text-amber-400",
-    blue: "text-blue-400",
-    violet: "text-violet-400"
-  };
-
-  return (
-    <div className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
-      <div className={colorMap[color]}>{icon}</div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-white/90">{message}</p>
-        <p className="mt-0.5 text-[11px] text-white/50">{time}</p>
-      </div>
-    </div>
-  );
-}
-
 const QUICK_ACTIONS = [
   { icon: Compass, label: "Browse Properties", href: "/properties" },
   { icon: ClipboardList, label: "Submit Request", href: "/requests" },
   { icon: Star, label: "View Favorites", href: "/favorites" },
-  { icon: BarChart3, label: "Analytics", href: "/analytics" },
-];
-
-const QUICK_LINKS = [
-  {
-    title: "Explore verified doors",
-    description: "Review high-confidence homes and suites that are ready to onboard.",
-    href: "/properties",
-    cta: "Browse properties",
-    icon: Compass,
-  },
-  {
-    title: "Request a property check",
-    description: "Submit an address and we’ll confirm availability and local rules for you.",
-    href: "/requests",
-    cta: "Start a request",
-    icon: CheckCircle2,
-  },
-  {
-    title: "Keep tabs on favourites",
-    description: "See every opportunity you’ve starred at once.",
-    href: "/favorites",
-    cta: "Open favourites",
-    icon: Star,
-  },
+  { icon: Target, label: "My Pipeline", href: "/requests?view=pipeline" },
 ];
