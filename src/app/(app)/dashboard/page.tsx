@@ -7,15 +7,22 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   Compass, CheckCircle2, Star, Building2, ClipboardList, CircleCheckBig,
-  Mail, ArrowRight, Sparkles, TrendingUp, DollarSign, Calendar,
-  AlertCircle, Users, Target, Zap, BarChart3, Activity
+  Mail, Sparkles, TrendingUp, Target
 } from "lucide-react";
 import SpotlightCarousel, { SpotlightCard } from "@/components/SpotlightCarousel";
 
-/** Visual tokens */
-const BRAND = { primary: "#00e1ff", accent: "#3b82f6" };
-
 type Spotlight = SpotlightCard;
+
+type PropertyRequest = {
+  id: string;
+  address: string;
+  city: string;
+  state: string;
+  status: "pending" | "in_review" | "verified" | "rejected";
+  created_at: string;
+  updated_at: string;
+  property_type?: string;
+};
 
 function recentlyVerified(verified_at?: string) {
   if (!verified_at) return false;
@@ -26,22 +33,21 @@ function recentlyVerified(verified_at?: string) {
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [kpis, setKpis] = useState([
     { label: "Requested Properties", value: "–", detail: "Open / In review", icon: ClipboardList },
-    { label: "Verified Doors",      value: "–", detail: "Operator ready",   icon: Building2 },
-    { label: "Pending Approvals",   value: "–", detail: "Awaiting review",  icon: CircleCheckBig },
+    { label: "Verified Doors", value: "–", detail: "Operator ready", icon: Building2 },
+    { label: "Pending Approvals", value: "–", detail: "Awaiting review", icon: CircleCheckBig },
   ]);
-
   const [spotlights, setSpotlights] = useState<Spotlight[]>([]);
   const [operatorStats, setOperatorStats] = useState({
     verifiedDoors: 0,
     activeLeads: 0,
     requestsUsed: 0,
-    requestsLimit: 50, // Based on tier
-    recentlyVerified: 0, // Last 7 days
+    requestsLimit: 50,
+    recentlyVerified: 0,
     tasksOverdue: 0
   });
+  const [recentActivity, setRecentActivity] = useState<PropertyRequest[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -169,15 +175,64 @@ export default function Dashboard() {
         ]);
       }
 
-      // Replace fake portfolio metrics with real operator KPIs
-      setOperatorStats({
-        verifiedDoors: 0, // Will populate from DB
-        activeLeads: 0,
-        requestsUsed: 0,
-        requestsLimit: 50, // Based on subscription tier
-        recentlyVerified: 0,
-        tasksOverdue: 0
-      });
+      // NEW: Fetch recent activity (last 5 requests)
+      try {
+        const { data: requests } = await client
+          .from("property_requests")
+          .select("*")
+          .order("updated_at", { ascending: false })
+          .limit(5);
+
+        if (requests && requests.length > 0) {
+          setRecentActivity(requests as PropertyRequest[]);
+        } else {
+          // Mock data fallback for development
+          setRecentActivity([
+            {
+              id: "1",
+              address: "123 Oak Street",
+              city: "Austin",
+              state: "TX",
+              status: "in_review",
+              created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+              updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+              property_type: "apartment"
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error("Error fetching recent activity:", error);
+        setRecentActivity([]);
+      }
+
+      // NEW: Update operator stats from actual requests
+      try {
+        const { data: allRequests } = await client
+          .from("property_requests")
+          .select("id, status, created_at");
+
+        if (allRequests) {
+          const now = Date.now();
+          const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+          const verifiedCount = allRequests.filter(r => r.status === "verified").length;
+          const activeCount = allRequests.filter(r => 
+            r.status === "pending" || r.status === "in_review"
+          ).length;
+          const recentlyVerifiedCount = allRequests.filter(r => 
+            r.status === "verified" && new Date(r.created_at).getTime() > sevenDaysAgo
+          ).length;
+
+          setOperatorStats(prev => ({
+            ...prev,
+            verifiedDoors: verifiedCount,
+            activeLeads: activeCount,
+            recentlyVerified: recentlyVerifiedCount
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching operator stats:", error);
+      }
     })();
   }, [user]);
 
@@ -187,16 +242,18 @@ export default function Dashboard() {
     return full.split(" ")[0];
   }, [user]);
 
-  if (loading) return (
-    <div className="mx-auto max-w-[1440px] px-4 py-6 md:py-8">
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-r-transparent"></div>
-          <p className="mt-4 text-sm text-white/70">Loading your dashboard...</p>
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-[1440px] px-4 py-6 md:py-8">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-r-transparent"></div>
+            <p className="mt-4 text-sm text-white/70">Loading your dashboard...</p>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-6 md:py-8">
@@ -218,7 +275,7 @@ export default function Dashboard() {
             href="/requests"
             className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
           >
-            <ClipboardList size={16} /> View Requests
+            <ClipboardList size={16} /> New Request
           </Link>
           <Link
             href="/properties"
@@ -229,7 +286,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Operator-Focused Stats - Reality-Based */}
+      {/* Consolidated Metrics - Single Row */}
       <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <OperatorMetricCard
           icon={<Building2 size={20} />}
@@ -269,26 +326,9 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content - 2/3 width */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Pipeline Status */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <h2 className="mb-4 text-lg font-bold text-white">Your Pipeline</h2>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {kpis.map((kpi) => (
-                <div key={kpi.label} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <kpi.icon size={18} className="text-emerald-400" />
-                    <span className="text-2xl font-bold text-white">{kpi.value}</span>
-                  </div>
-                  <p className="text-xs font-medium text-white/90">{kpi.label}</p>
-                  <p className="text-[11px] text-white/50">{kpi.detail}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Empty State / Onboarding */}
-          {operatorStats.verifiedDoors === 0 && (
-            <section className="rounded-2xl border border-emerald-400/20 bg-linear-to-br from-emerald-500/10 to-sky-500/10 p-8 text-center">
+          {/* Empty State OR Content */}
+          {operatorStats.verifiedDoors === 0 ? (
+            <section className="rounded-2xl border border-emerald-400/20 bg-linear-to-br from-emerald-500/10 via-transparent to-sky-500/10 p-8 text-center">
               <div className="mb-4 mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20">
                 <Sparkles size={28} className="text-emerald-400" />
               </div>
@@ -311,6 +351,52 @@ export default function Dashboard() {
                 </Link>
               </div>
             </section>
+          ) : (
+            /* Recent Activity Table - Only show if user has properties */
+            <section className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+              <div className="border-b border-white/10 bg-white/5 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white">Recent Activity</h2>
+                  <Link href="/requests" className="text-sm text-emerald-400 hover:text-emerald-300">
+                    View all →
+                  </Link>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                {recentActivity.length > 0 ? (
+                  <table className="w-full text-sm">
+                    <thead className="bg-white/5 text-white/70">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Property</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Updated</th>
+                        <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {recentActivity.map((request) => (
+                        <ActivityRow
+                          key={request.id}
+                          property={`${request.address}, ${request.city}`}
+                          type={request.property_type || "Request"}
+                          status={getStatusLabel(request.status)}
+                          statusColor={getStatusColor(request.status)}
+                          updated={getTimeAgo(request.updated_at)}
+                          href={`/requests/${request.id}`}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="px-6 py-12 text-center text-white/50">
+                    <p>No recent activity</p>
+                    <Link href="/request-verification" className="mt-2 inline-block text-sm text-emerald-400 hover:text-emerald-300">
+                      Submit your first request →
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </section>
           )}
 
           {/* Trending Opportunities */}
@@ -323,56 +409,9 @@ export default function Dashboard() {
             </div>
             <SpotlightCarousel items={spotlights} />
           </section>
-
-          {/* Recent Activity */}
-          <section className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-            <div className="border-b border-white/10 bg-white/5 px-6 py-4">
-              <h2 className="text-lg font-bold text-white">Recent Activity</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-white/5 text-white/70">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Property</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Updated</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10">
-                  {operatorStats.verifiedDoors === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-white/50">
-                        No activity yet. Start by browsing properties or submitting a request.
-                      </td>
-                    </tr>
-                  ) : (
-                    <>
-                      <ActivityRow
-                        property="123 Oak St, Austin"
-                        type="Request"
-                        status="In Review"
-                        statusColor="amber"
-                        updated="2 hours ago"
-                        href="/requests"
-                      />
-                      <ActivityRow
-                        property="Riverfront Rowhomes"
-                        type="Property"
-                        status="Verified"
-                        statusColor="emerald"
-                        updated="Yesterday"
-                        href="/properties"
-                      />
-                    </>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - 1/3 width */}
         <aside className="space-y-6">
           {/* Quick Actions */}
           <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -435,7 +474,6 @@ export default function Dashboard() {
 }
 
 // Updated Component for Operator Metrics
-
 function OperatorMetricCard({ icon, label, value, sublabel, color, href }: {
   icon: React.ReactNode;
   label: string;
@@ -472,22 +510,29 @@ function ActivityRow({ property, type, status, statusColor, updated, href }: {
   href: string;
 }) {
   const statusColorMap: Record<string, string> = {
-    emerald: "bg-emerald-500/20 text-emerald-300",
-    amber: "bg-amber-500/20 text-amber-300",
-    blue: "bg-blue-500/20 text-blue-300",
+    emerald: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+    amber: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+    blue: "bg-blue-500/10 text-blue-300 border-blue-500/20",
+    violet: "bg-violet-500/10 text-violet-300 border-violet-500/20",
+    red: "bg-red-500/10 text-red-300 border-red-500/20"
   };
 
   return (
     <tr className="hover:bg-white/5">
-      <td className="px-6 py-4 text-white/90">{property}</td>
       <td className="px-6 py-4">
-        <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusColorMap[statusColor]}`}>
+        <div>
+          <p className="font-medium text-white">{property}</p>
+          <p className="text-xs text-white/50">{type}</p>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColorMap[statusColor]}`}>
           {status}
         </span>
       </td>
-      <td className="px-6 py-4 text-white/70">{updated}</td>
+      <td className="px-6 py-4 text-white/60">{updated}</td>
       <td className="px-6 py-4 text-right">
-        <Link href={href} className="text-emerald-400 hover:text-emerald-300">
+        <Link href={href} className="text-sm font-medium text-emerald-400 hover:text-emerald-300">
           View →
         </Link>
       </td>
@@ -501,3 +546,36 @@ const QUICK_ACTIONS = [
   { icon: Star, label: "View Favorites", href: "/favorites" },
   { icon: Target, label: "My Pipeline", href: "/requests?view=pipeline" },
 ];
+
+// Helper functions
+function getStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    pending: "Pending",
+    in_review: "In Review",
+    verified: "Verified",
+    rejected: "Rejected"
+  };
+  return labels[status] || status;
+}
+
+function getStatusColor(status: string): string {
+  const colors: Record<string, string> = {
+    pending: "amber",
+    in_review: "violet",
+    verified: "emerald",
+    rejected: "red"
+  };
+  return colors[status] || "blue";
+}
+
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+}

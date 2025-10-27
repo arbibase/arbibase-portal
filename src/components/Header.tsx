@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { SignOut, User } from "@phosphor-icons/react";
@@ -20,9 +19,9 @@ export default function Header() {
 
   async function signOut() {
     try {
-      await supabase?.auth.signOut();
+      if (supabase) await supabase.auth.signOut();
     } finally {
-      location.href = "/";
+      window.location.href = "/";
     }
   }
 
@@ -31,15 +30,11 @@ export default function Header() {
       <div className="mx-auto max-w-[1140px] px-6">
         <div className="flex h-16 items-center justify-between gap-8">
           {/* Logo */}
-          <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="ArbiBase">
-            <Image
-              src="/arbibase-logo.svg"     // <-- your file in /public
-              alt="ArbiBase"
-              priority
-              width={116}
-              height={24}
-              className="h-6 w-auto"
-            />
+          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-linear-to-br from-emerald-400 to-sky-400 text-xs font-bold text-black">
+              A
+            </div>
+            <span className="text-white/95 font-semibold tracking-[0.2px]">ArbiBase</span>
           </Link>
 
           {/* Main Navigation */}
@@ -48,6 +43,7 @@ export default function Header() {
             <NavLink href="/requests">Requests</NavLink>
             <NavLink href="/favorites">Favorites</NavLink>
             <NavLink href="/dashboard">Dashboard</NavLink>
+            <NavLink href="/contact">Contact</NavLink>
           </nav>
 
           {/* Right side */}
@@ -58,10 +54,10 @@ export default function Header() {
             </div>
 
             {/* Desktop user menu */}
-            {authed ? (
+            {authed && (
               <div className="relative hidden md:block">
                 <button
-                  onClick={() => setUserMenuOpen((v) => !v)}
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
                 >
                   <User size={16} weight="bold" />
@@ -91,7 +87,9 @@ export default function Header() {
                   </div>
                 )}
               </div>
-            ) : (
+            )}
+
+            {!authed && (
               <Link
                 href="/login"
                 className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
@@ -145,6 +143,9 @@ function MobileMenu({ authed, onSignOut }: { authed: boolean; onSignOut: () => v
               </Link>
               <Link href="/dashboard" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
                 Dashboard
+              </Link>
+              <Link href="/contact" className="block px-4 py-2 text-sm text-white/90 hover:bg-white/5">
+                Contact
               </Link>
 
               {authed && (
