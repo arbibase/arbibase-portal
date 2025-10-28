@@ -4,7 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import ROICalculator from "@/components/roi-calculator";
+import dynamic from "next/dynamic";
+const ROICalculator = dynamic(
+  () => import("@/components/roi-calculator"),
+  { ssr: false }
+);
 import {
   Search, Filter, MapPin, Bed, Bath, DollarSign, Heart,
   Building2, Grid, Map as MapIcon, CheckCircle2,
@@ -1405,14 +1409,14 @@ export default function PropertiesPage() {
       )}
 
       {/* ROI Calculator */}
-      {roiProperty && (
-        <ROICalculator
-          property={roiProperty}
-          isOpen={showROICalculator}
-          onClose={() => setShowROICalculator(false)}
-          onSave={handleROISave}
-        />
-      )}
+{roiProperty && showROICalculator && (
+  <ROICalculator
+    property={roiProperty}
+    isOpen={showROICalculator}
+    onClose={() => setShowROICalculator(false)}
+    onSave={handleROISave}
+  />
+)}
     </div>
   );
 }
