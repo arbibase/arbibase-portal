@@ -1,5 +1,3 @@
-"use client";
-
 import { notFound } from "next/navigation";
 import { DEMO_PROPERTIES } from "@/lib/properties-demo";
 import PropertyDetailClient from "./PropertyDetailClient";
