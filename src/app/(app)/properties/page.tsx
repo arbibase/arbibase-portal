@@ -53,6 +53,10 @@ type Bounds = {
 };
 
 export default function PropertiesPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [properties, setProperties] = useState<Property[]>([]);

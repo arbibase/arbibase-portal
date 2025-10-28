@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { User, Bell, Mail } from "lucide-react";
+
+import { User, Bell, Mail, KeyRound } from "lucide-react";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -12,6 +13,18 @@ export default function AccountPage() {
   const [saving, setSaving] = useState(false);
   const [digestCadence, setDigestCadence] = useState<'off' | 'daily' | 'weekly'>('off');
   const [toast, setToast] = useState<string | null>(null);
+
+  // Profile state
+  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  // Password state
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -28,18 +41,74 @@ export default function AccountPage() {
       return;
     }
     
-    // Fetch user settings
-    const { data: profile } = await supabase
+    // Fetch user settings and profile
+    const { data: profileData } = await supabase
       .from('user_profiles')
-      .select('digest_cadence')
+      .select('digest_cadence, name, email')
       .eq('user_id', data.user.id)
       .single();
-    
-    if (profile?.digest_cadence) {
-      setDigestCadence(profile.digest_cadence as 'off' | 'daily' | 'weekly');
+
+    if (profileData?.digest_cadence) {
+      setDigestCadence(profileData.digest_cadence as 'off' | 'daily' | 'weekly');
     }
-    
+    if (profileData) {
+      setProfile({ name: profileData.name || '', email: profileData.email || data.user.email || '' });
+    }
     setLoading(false);
+  }
+
+  async function handleProfileSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!profile || !supabase) return;
+    setProfileSaving(true);
+    setToast(null);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user?.user) throw new Error('Not authenticated');
+      // Update user_profiles
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ name: profile.name, email: profile.email })
+        .eq('user_id', user.user.id);
+      if (error) throw error;
+      setToast('Profile updated!');
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      setToast('Failed to update profile');
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordSaving(true);
+    setPasswordError(null);
+    setPasswordSuccess(null);
+    if (passwords.new !== passwords.confirm) {
+      setPasswordError('New passwords do not match');
+      setPasswordSaving(false);
+      return;
+    }
+    if (!supabase) {
+      setPasswordError('Supabase not initialized');
+      setPasswordSaving(false);
+      return;
+    }
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user?.user) throw new Error('Not authenticated');
+      // Supabase does not support password change via update in user_profiles, must use auth
+      const { error } = await supabase.auth.updateUser({ password: passwords.new });
+      if (error) throw error;
+      setPasswordSuccess('Password updated!');
+      setPasswords({ current: '', new: '', confirm: '' });
+      setTimeout(() => setPasswordSuccess(null), 3000);
+    } catch (err: any) {
+      setPasswordError('Failed to update password');
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   async function handleDigestChange(newCadence: 'off' | 'daily' | 'weekly') {
@@ -113,12 +182,102 @@ export default function AccountPage() {
               <p className="text-sm text-white/60">Your account information</p>
             </div>
           </div>
-          <p className="text-sm text-white/60">
-            Profile management coming soon. Contact your administrator for account changes.
-          </p>
+          {profile ? (
+            <form className="space-y-4" onSubmit={handleProfileSave}>
+              <div>
+                <label className="block text-white/70 text-sm mb-1">Name</label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-white/10 bg-white/10 p-2 text-white focus:border-emerald-400 outline-none"
+                  value={profile.name}
+                  onChange={e => setProfile({ ...profile, name: e.target.value })}
+                  disabled={profileSaving}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-white/70 text-sm mb-1">Email</label>
+                <input
+                  type="email"
+                  className="w-full rounded-lg border border-white/10 bg-white/10 p-2 text-white focus:border-emerald-400 outline-none"
+                  value={profile.email}
+                  onChange={e => setProfile({ ...profile, email: e.target.value })}
+                  disabled={profileSaving}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="rounded-lg bg-emerald-500 px-4 py-2 text-white font-semibold hover:bg-emerald-600 disabled:opacity-60"
+                disabled={profileSaving}
+              >
+                {profileSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </form>
+          ) : (
+            <p className="text-sm text-white/60">Loading profile...</p>
+          )}
         </section>
 
-        {/* Deal Digest Section */}
+        {/* Password Change Section */}
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-lg bg-yellow-500/10 p-3">
+              <KeyRound size={24} className="text-yellow-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Change Password</h2>
+              <p className="text-sm text-white/60">Update your account password</p>
+            </div>
+          </div>
+          <form className="space-y-4 max-w-md" onSubmit={handlePasswordChange}>
+            <div>
+              <label className="block text-white/70 text-sm mb-1">New Password</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="w-full rounded-lg border border-white/10 bg-white/10 p-2 text-white focus:border-yellow-400 outline-none"
+                value={passwords.new}
+                onChange={e => setPasswords({ ...passwords, new: e.target.value })}
+                disabled={passwordSaving}
+                required
+                minLength={6}
+              />
+            </div>
+            <div>
+              <label className="block text-white/70 text-sm mb-1">Confirm New Password</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="w-full rounded-lg border border-white/10 bg-white/10 p-2 text-white focus:border-yellow-400 outline-none"
+                value={passwords.confirm}
+                onChange={e => setPasswords({ ...passwords, confirm: e.target.value })}
+                disabled={passwordSaving}
+                required
+                minLength={6}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="showPassword"
+                checked={showPassword}
+                onChange={() => setShowPassword(!showPassword)}
+                className="accent-yellow-400"
+              />
+              <label htmlFor="showPassword" className="text-xs text-white/60 cursor-pointer">Show password</label>
+            </div>
+            {passwordError && <div className="text-red-400 text-sm">{passwordError}</div>}
+            {passwordSuccess && <div className="text-emerald-400 text-sm">{passwordSuccess}</div>}
+            <button
+              type="submit"
+              className="rounded-lg bg-yellow-500 px-4 py-2 text-white font-semibold hover:bg-yellow-600 disabled:opacity-60"
+              disabled={passwordSaving}
+            >
+              {passwordSaving ? 'Saving...' : 'Change Password'}
+            </button>
+          </form>
+        </section>
+
+  {/* Deal Digest Section */}
         <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="rounded-lg bg-sky-500/10 p-3">
@@ -188,7 +347,7 @@ export default function AccountPage() {
           )}
         </section>
 
-        {/* Notifications Section */}
+  {/* Notifications Section */}
         <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="rounded-lg bg-violet-500/10 p-3">
