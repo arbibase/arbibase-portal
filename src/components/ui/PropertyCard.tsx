@@ -1,3 +1,5 @@
+"use client";
+
 // src/components/ui/PropertyCard.tsx
 import Link from "next/link";
 
