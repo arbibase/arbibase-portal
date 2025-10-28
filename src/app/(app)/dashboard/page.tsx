@@ -42,6 +42,7 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statsLoaded, setStatsLoaded] = useState(false);
   const [spotlightsLoaded, setSpotlightsLoaded] = useState(false);
+  const [marketRadarData, setMarketRadarData] = useState<{ city: string; state: string; count: number }[]>([]);
   const router = useRouter();
 
   function isSupabaseConfiguredClientSide() {
@@ -75,11 +76,12 @@ export default function Dashboard() {
     fetchUserStats();
   }, [user]);
 
-  // Fetch spotlights after user is set
+  // Fetch spotlights and market radar after user is set
   useEffect(() => {
     if (!user || !supabase) return;
     setSpotlightsLoaded(false);
     fetchSpotlights();
+    fetchMarketRadarData();
   }, [user, supabase]);
 
   async function fetchUserStats() {
@@ -180,11 +182,49 @@ export default function Dashboard() {
     }
   }
 
+  async function fetchMarketRadarData() {
+    if (!supabase) return;
+    try {
+      // Fetch all city/state pairs and group by city/state in JS
+      const { data: allProps, error } = await supabase
+        .from("property_requests")
+        .select("city, state");
+
+      if (error) {
+        console.error("Error fetching market radar data:", error);
+        setMarketRadarData([]);
+        return;
+      }
+
+      // Group by city/state and count
+      const counts: Record<string, { city: string; state: string; count: number }> = {};
+      (allProps || []).forEach((row) => {
+        if (!row.city || !row.state) return;
+        const key = `${row.city},${row.state}`;
+        if (!counts[key]) counts[key] = { city: row.city, state: row.state, count: 0 };
+        counts[key].count += 1;
+      });
+      const radarData = Object.values(counts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      setMarketRadarData(radarData);
+
+    } catch (error) {
+      console.error("Error fetching market radar data:", error);
+      setMarketRadarData([]);
+    }
+  }
+
   const firstName = useMemo(() => {
     const full = (user?.user_metadata?.full_name as string | undefined) || "";
     if (!full.trim()) return user?.email?.split("@")[0] || "there";
     return full.split(" ")[0];
   }, [user]);
+
+  // Determine membership tier
+  const membershipTier = (user?.user_metadata?.membership_tier as string | undefined) || "Free";
+  const isProOrPremium = membershipTier === "Pro" || membershipTier === "Premium";
 
   // Only show dashboard after user, stats, and spotlights are loaded
   if (!user || !mounted || !statsLoaded || !spotlightsLoaded) {
@@ -282,43 +322,40 @@ export default function Dashboard() {
         />
       </section>
 
-      {/* Feature Cards - NEW */}
-      <section className="mb-8 grid gap-4 md:grid-cols-3">
-        <Link
-          href="/portfolio"
-          className="group rounded-2xl border border-white/10 bg-white/5 p-6 transition-all hover:bg-white/8 hover:border-emerald-400/30 hover:shadow-[0_10px_28px_-8px_rgba(52,211,153,0.18)]"
-        >
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-all group-hover:scale-110 group-hover:bg-emerald-500/20">
-            <PieChart size={24} />
-          </div>
-          <h3 className="mb-2 text-lg font-bold text-white">Portfolio Analytics</h3>
-          <p className="text-sm text-white/60">Track performance across all properties</p>
-        </Link>
-
-        <Link
-          href="/market-radar"
-          className="group rounded-2xl border border-white/10 bg-white/5 p-6 transition-all hover:bg-white/8 hover:border-emerald-400/30 hover:shadow-[0_10px_28px_-8px_rgba(52,211,153,0.18)]"
-        >
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-all group-hover:scale-110 group-hover:bg-emerald-500/20">
-            <Target size={24} />
-          </div>
-          <h3 className="mb-2 text-lg font-bold text-white">Market Radar</h3>
-          <p className="text-sm text-white/60">Discover market opportunities and trends</p>
-        </Link>
-
-        <Link
-          href="/lease-assistant"
-          className="group rounded-2xl border border-white/10 bg-white/5 p-6 transition-all hover:bg-white/8 hover:border-emerald-400/30 hover:shadow-[0_10px_28px_-8px_rgba(52,211,153,0.18)]"
-        >
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-all group-hover:scale-110 group-hover:bg-emerald-500/20">
-            <Users size={24} />
-          </div>
-          <h3 className="mb-2 text-lg font-bold text-white">Lease Assistant</h3>
-          <p className="text-sm text-white/60">Manage tenants and lease lifecycle</p>
-        </Link>
-      </section>
-
-      {/* Market Radar Section - Keep existing but maybe remove since we have card above */}
+      {/* Quick Access Tools - PRO/PREMIUM ONLY */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+        {isProOrPremium ? (
+          <>
+            <Link href="/portfolio" className="rounded-xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-colors">
+              <div className="flex items-center gap-3 mb-2">
+                <PieChart className="text-emerald-400" size={24} />
+                <h3 className="text-lg font-bold text-white">Portfolio Analytics</h3>
+              </div>
+              <p className="text-sm text-white/60">Track performance across all properties</p>
+            </Link>
+            <Link href="/market-radar" className="rounded-xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-colors">
+              <div className="flex items-center gap-3 mb-2">
+                <Target className="text-emerald-400" size={24} />
+                <h3 className="text-lg font-bold text-white">Market Radar</h3>
+              </div>
+              <p className="text-sm text-white/60">Discover market opportunities and trends</p>
+            </Link>
+            <Link href="/lease-assistant" className="rounded-xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition-colors">
+              <div className="flex items-center gap-3 mb-2">
+                <Users className="text-emerald-400" size={24} />
+                <h3 className="text-lg font-bold text-white">Lease Assistant</h3>
+              </div>
+              <p className="text-sm text-white/60">Manage tenants and lease lifecycle</p>
+            </Link>
+          </>
+        ) : (
+          <>
+            <LockedFeatureCard feature="Portfolio Analytics" />
+            <LockedFeatureCard feature="Market Radar" />
+            <LockedFeatureCard feature="Lease Assistant" />
+          </>
+        )}
+      </div>
       <section className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -326,9 +363,10 @@ export default function Dashboard() {
             <p className="text-sm text-white/60">Top performing markets right now</p>
           </div>
         </div>
-        <MarketRadar />
+        <MarketRadar data={marketRadarData} />
       </section>
 
+// ...existing code...
       {/* Two-Column Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content - 2/3 width */}
@@ -475,4 +513,28 @@ function getTimeAgo(dateString: string): string {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
   return date.toLocaleDateString();
+}
+
+// Add this helper component at the bottom of the file
+function LockedFeatureCard({ feature }: { feature: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-6 opacity-60 relative">
+      <div className="flex items-center gap-3 mb-2">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-900/40 text-emerald-400">
+          <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 1.5a3.5 3.5 0 0 1 3.5 3.5v2h.5A1.5 1.5 0 0 1 13.5 8v4A1.5 1.5 0 0 1 12 13.5H4A1.5 1.5 0 0 1 2.5 12V8A1.5 1.5 0 0 1 4 6.5h.5v-2A3.5 3.5 0 0 1 8 1.5Zm0 1A2.5 2.5 0 0 0 5.5 5v2h5V5A2.5 2.5 0 0 0 8 2.5Z" fill="currentColor"/></svg>
+        </span>
+        <h3 className="text-lg font-bold text-white">{feature}</h3>
+      </div>
+      <p className="text-sm text-white/60 mb-4">Unlock <span className="font-semibold">{feature}</span> with Pro or Premium membership.</p>
+      <a
+        href="/upgrade"
+        className="inline-block rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition"
+      >
+        Upgrade to Pro
+      </a>
+      <div className="absolute top-4 right-4 text-xs font-semibold text-emerald-400 bg-emerald-900/40 px-2 py-0.5 rounded">
+        PRO
+      </div>
+    </div>
+  );
 }
