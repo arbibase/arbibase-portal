@@ -100,8 +100,9 @@ export default function PropertiesPage() {
     }
   }, [filteredProperties, viewMode]);
 
-  // Read URL params on mount
+  // Read URL params on mount (client only)
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const s = params.get("sort") as SortBy | null;
     const v = params.get("verified");
