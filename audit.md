@@ -32,6 +32,9 @@ Se propone dividir las mejoras en tres etapas: (1) estabilización del monolito 
 ### Etapa 1: Mejora del Monolito Actual para Versión Beta
 Esta etapa se centra en estabilizar y optimizar el sistema existente sin alterar su estructura monolítica, permitiendo un lanzamiento rápido de la beta (con tiers como Beta a $98/mes).
 
+<img width="1284" height="778" alt="image" src="https://github.com/user-attachments/assets/9e241037-617a-4a44-bea9-78859ad96fef" />
+
+
 - **Migración de Base de Datos**:
   - Reemplazar Google Sheets por PostgreSQL completo en Supabase (ya integrado como base). Crear tablas para propiedades, usuarios, requests, etc., utilizando las migraciones existentes en supabase/migrations.
   - Modificar rutas como integrations/sheets/pull para importar datos legacy a PostgreSQL y agregar índices en columnas frecuentes (por ejemplo, market, price_range).
@@ -52,6 +55,8 @@ Esta etapa se centra en estabilizar y optimizar el sistema existente sin alterar
 
 ### Etapa 2: Separación de Frontend y Backend
 Una vez estabilizada la beta, se procede a separar componentes para permitir un escalado independiente. Esto se alinea con el roadmap (por ejemplo, Phase 2: Intelligence, aunque la AI no esté implementada aún).
+
+<img width="1470" height="680" alt="image" src="https://github.com/user-attachments/assets/ecc0235d-0467-464e-b678-5229ea758ca9" />
 
 - **Backend en FastAPI**:
   - Mover rutas API (por ejemplo, api/admin, api/market-radar) a un repositorio separado con FastAPI (Python, preparándose para futuras integraciones de AI).
@@ -74,6 +79,9 @@ Una vez estabilizada la beta, se procede a separar componentes para permitir un 
 
 ### Etapa 3: Infraestructura y DevOps
 Esta etapa se enfoca en automatización y cloud para soportar el crecimiento post-beta.
+
+<img width="1430" height="698" alt="image" src="https://github.com/user-attachments/assets/be6dc42b-fccf-4440-ae22-eef6edd767a3" />
+
 
 - **Docker y ACR en Azure**:
   - Dockerizar el backend (FastAPI) y frontend (Angular). Crear Dockerfiles para cada uno.
