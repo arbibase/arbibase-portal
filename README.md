@@ -68,3 +68,137 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 +## Learn more
 +- [Next.js documentation](https://nextjs.org/docs)
 +- [Supabase documentation](https://supabase.com/docs)
+
+```
+arbibase-portal
+├─ eslint.config.mjs
+├─ middleware.ts
+├─ next-env.d.ts
+├─ next.config.mjs
+├─ package.json
+├─ postcss.config.js
+├─ public
+│  ├─ arbibase-logo.svg
+│  ├─ file.svg
+│  ├─ globe.svg
+│  ├─ next.svg
+│  ├─ vercel.svg
+│  └─ window.svg
+├─ README.md
+├─ src
+│  ├─ app
+│  │  ├─ (app)
+│  │  │  ├─ dashboard
+│  │  │  │  └─ page.tsx
+│  │  │  ├─ favorites
+│  │  │  │  └─ page.tsx
+│  │  │  ├─ layout.tsx
+│  │  │  ├─ lease-assistant
+│  │  │  │  └─ page.tsx
+│  │  │  ├─ market-radar
+│  │  │  │  └─ page.tsx
+│  │  │  ├─ portfolio
+│  │  │  │  └─ page.tsx
+│  │  │  ├─ properties
+│  │  │  │  ├─ page.tsx
+│  │  │  │  └─ [id]
+│  │  │  │     ├─ page.tsx
+│  │  │  │     └─ PropertyDetailClient.tsx
+│  │  │  ├─ request-verification
+│  │  │  │  └─ page.tsx
+│  │  │  └─ requests
+│  │  │     └─ page.tsx
+│  │  ├─ account
+│  │  │  └─ page.tsx
+│  │  ├─ admin
+│  │  │  ├─ layout.tsx
+│  │  │  ├─ page.tsx
+│  │  │  └─ tiers
+│  │  │     └─ page.tsx
+│  │  ├─ api
+│  │  │  ├─ admin
+│  │  │  │  ├─ promote
+│  │  │  │  │  └─ route.ts
+│  │  │  │  ├─ send-invite
+│  │  │  │  │  └─ route.ts
+│  │  │  │  ├─ tiers
+│  │  │  │  │  └─ route.ts
+│  │  │  │  └─ users
+│  │  │  │     └─ [id]
+│  │  │  │        ├─ delete
+│  │  │  │        │  └─ route.ts
+│  │  │  │        └─ suspend
+│  │  │  │           └─ route.ts
+│  │  │  ├─ debug
+│  │  │  │  └─ me
+│  │  │  │     └─ route.ts
+│  │  │  ├─ geocode
+│  │  │  │  └─ route.ts
+│  │  │  ├─ integrations
+│  │  │  │  └─ sheets
+│  │  │  │     └─ pull
+│  │  │  │        └─ route.ts
+│  │  │  ├─ market-radar
+│  │  │  │  └─ route.ts
+│  │  │  ├─ roi[id]
+│  │  │  │  └─ route.ts
+│  │  │  ├─ search
+│  │  │  │  └─ route.ts
+│  │  │  └─ settings
+│  │  │     └─ digest
+│  │  │        └─ route.ts
+│  │  ├─ contact
+│  │  │  └─ page.tsx
+│  │  ├─ favicon.ico
+│  │  ├─ globals.css
+│  │  ├─ layout.tsx
+│  │  ├─ login
+│  │  │  └─ page.tsx
+│  │  └─ page.tsx
+│  ├─ components
+│  │  ├─ AppShell.tsx
+│  │  ├─ Aurora.tsx
+│  │  ├─ comp-analysis.tsx
+│  │  ├─ Header.tsx
+│  │  ├─ MarketRadar.tsx
+│  │  ├─ PortalHero.tsx
+│  │  ├─ ProtectedRoute.tsx
+│  │  ├─ roi-calculator.tsx
+│  │  ├─ RoiDrawer.tsx
+│  │  ├─ SpotlightCarousel.tsx
+│  │  └─ ui
+│  │     ├─ MapPane.tsx
+│  │     ├─ PropertyCard.tsx
+│  │     ├─ PropertyDetailClient.tsx
+│  │     ├─ PropertyModal.tsx
+│  │     ├─ SearchBar.tsx
+│  │     ├─ Sidebar.tsx
+│  │     └─ Topbar.tsx
+│  ├─ emails
+│  │  └─ dealDigest.tsx
+│  ├─ lib
+│  │  ├─ getServerUser.ts
+│  │  ├─ integrations.ts
+│  │  ├─ lead-scoring.ts
+│  │  ├─ properties-demo.ts
+│  │  ├─ supabase.ts
+│  │  ├─ supabaseAdmin.ts
+│  │  └─ useTier.ts
+│  ├─ middleware.ts
+│  ├─ pages
+│  │  └─ api
+│  │     ├─ ghl.ts
+│  │     └─ ping.ts
+│  ├─ styles
+│  │  └─ tokens.css
+│  └─ types
+│     ├─ google-maps.d.ts
+│     └─ roi.ts
+├─ supabase
+│  └─ migrations
+│     └─ 20250101000000_create_user_profiles.sql
+├─ tailwind.config.js
+├─ tsconfig.json
+└─ vercel.json
+
+```
