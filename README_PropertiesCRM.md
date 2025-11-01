@@ -538,3 +538,898 @@ Prospecting sequences (Pro+) using saved templates
 Doc e-signature link for addenda (Premium, via Dropbox Sign/DocuSign)
 
 Owner portal (read-only dashboard + chat)
+
+commit-ready pieces to ship the two items you asked for:
+
+Outreach Composer (modal with presets + “Log & follow-up”)
+
+Kanban Card Right Panel (notes, tasks, files, quick reply)
+
+They match your stack (Next.js App Router + Supabase + Tailwind + Lucide). I included minimal APIs and storage wiring so it all works on day one.
+
+0) One-time storage (files)
+
+Create a private bucket for verification files:
+
+Bucket: crm-files (Private: ON)
+
+1) API — Verification Notes / Tasks / Files
+1.1 Notes
+
+File: src/app/api/verification/[id]/notes/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+export async function GET(_:NextRequest, { params }:{params:{id:string}}) {
+  const sb = getSupabaseServer();
+  const { data, error } = await sb.from("crm_notes")
+    .select("id, note, created_by, created_at")
+    .eq("verif_id", params.id)
+    .order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ data });
+}
+
+export async function POST(req:NextRequest, { params }:{params:{id:string}}) {
+  const sb = getSupabaseServer();
+  const { data:{ user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { note } = await req.json();
+  if (!note || note.trim().length < 2) return NextResponse.json({ error: "Note too short" }, { status: 400 });
+  const { error } = await sb.from("crm_notes").insert({
+    verif_id: params.id, note, created_by: user.id
+  });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+1.2 Tasks
+
+File: src/app/api/verification/[id]/tasks/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+export async function GET(_:NextRequest, { params }:{params:{id:string}}) {
+  const sb = getSupabaseServer();
+  const { data, error } = await sb.from("crm_tasks")
+    .select("id, title, status, due_at, priority, assignee_id, created_at")
+    .eq("verif_id", params.id)
+    .order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ data });
+}
+
+export async function POST(req:NextRequest, { params }:{params:{id:string}}) {
+  const sb = getSupabaseServer();
+  const { data:{ user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const payload = await req.json(); // { title, due_at?, priority? }
+  if (!payload?.title) return NextResponse.json({ error: "Title required" }, { status: 400 });
+  const { error } = await sb.from("crm_tasks").insert({
+    verif_id: params.id,
+    title: payload.title,
+    due_at: payload.due_at ?? null,
+    priority: payload.priority ?? "normal",
+    assignee_id: user.id
+  });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+export async function PATCH(req:NextRequest, { params }:{params:{id:string}}) {
+  const sb = getSupabaseServer();
+  const body = await req.json(); // { id, status? }
+  if (!body?.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  const patch:any = {};
+  if (body.status) patch.status = body.status;
+  const { error } = await sb.from("crm_tasks").update(patch).eq("id", body.id).eq("verif_id", params.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+1.3 Files (signed upload + register + delete)
+
+Sign upload
+File: src/app/api/verification/[id]/files/sign/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+const BUCKET = "crm-files";
+
+export async function POST(req:NextRequest, { params }:{params:{id:string}}) {
+  const sb = getSupabaseServer();
+  const { data:{ user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { filename, mime } = await req.json() as { filename:string; mime?:string };
+  if (!filename) return NextResponse.json({ error: "filename required" }, { status: 400 });
+
+  const safe = filename.replace(/[^\w.\-]/g, "_");
+  const path = `verification/${params.id}/${Date.now()}_${safe}`;
+
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUploadUrl(path, {
+    contentType: mime || "application/octet-stream",
+    upsert: false
+  } as any);
+  if (error || !data) return NextResponse.json({ error: error?.message || "sign failed" }, { status: 500 });
+  return NextResponse.json({ path, signedUrl: data.signedUrl });
+}
+
+
+Register / list / delete
+File: src/app/api/verification/[id]/files/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+const BUCKET = "crm-files";
+
+export async function GET(_:NextRequest, { params }:{params:{id:string}}){
+  const sb = getSupabaseServer();
+  const { data, error } = await sb.from("crm_files")
+    .select("id, title, file_url, created_by, created_at")
+    .eq("verif_id", params.id)
+    .order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ error:error.message }, { status:500 });
+  return NextResponse.json({ data });
+}
+
+export async function POST(req:NextRequest, { params }:{params:{id:string}}){
+  const sb = getSupabaseServer();
+  const { data:{ user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error:"Unauthorized" }, { status:401 });
+  const { path, title } = await req.json();
+  if (!path) return NextResponse.json({ error:"path required" }, { status:400 });
+  const { error } = await sb.from("crm_files").insert({
+    verif_id: params.id, file_url: path, title: title || null, created_by: user.id
+  });
+  if (error) return NextResponse.json({ error:error.message }, { status:500 });
+  return NextResponse.json({ ok:true });
+}
+
+export async function DELETE(req:NextRequest, { params }:{params:{id:string}}){
+  const sb = getSupabaseServer();
+  const url = new URL(req.url);
+  const path = url.searchParams.get("path");
+  if (!path) return NextResponse.json({ error:"path query required" }, { status:400 });
+
+  // remove db row
+  const { error: delDb } = await sb.from("crm_files")
+    .delete().eq("verif_id", params.id).eq("file_url", path);
+  if (delDb) return NextResponse.json({ error: delDb.message }, { status: 500 });
+
+  // remove storage (best-effort)
+  await sb.storage.from(BUCKET).remove([path]).catch(()=>{});
+  return NextResponse.json({ ok:true });
+}
+
+2) Component — Outreach Composer (Modal)
+
+File: src/components/OutreachComposer.tsx
+
+"use client";
+
+import { useState } from "react";
+
+type Props = {
+  ownerId: string;
+  contactId?: string|null;
+  propertyId?: string|null;
+  open: boolean;
+  onClose: () => void;
+  onLogged?: () => void;
+};
+
+const outcomes = ["no_answer","left_vm","interested","not_interested","follow_up","meeting_set"] as const;
+const channels = ["call","sms","email","in_app","dm"] as const;
+
+export default function OutreachComposer({ ownerId, contactId=null, propertyId=null, open, onClose, onLogged }: Props) {
+  const [channel, setChannel] = useState<typeof channels[number]>("call");
+  const [direction, setDirection] = useState<"out"|"in">("out");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [outcome, setOutcome] = useState<typeof outcomes[number]>("no_answer");
+  const [nextStepAt, setNextStepAt] = useState<string>(""); // ISO local
+  const [loading, setLoading] = useState(false);
+
+  if (!open) return null;
+
+  async function log() {
+    setLoading(true);
+    const payload:any = { owner_id: ownerId, contact_id: contactId, property_id: propertyId, channel, direction, subject, body, outcome };
+    if (nextStepAt) payload.next_step_at = new Date(nextStepAt).toISOString();
+    const r = await fetch("/api/outreach", { method: "POST", body: JSON.stringify(payload) });
+    const j = await r.json();
+    setLoading(false);
+    if (!r.ok) return alert(j.error || "Failed");
+    onLogged?.();
+    onClose();
+  }
+
+  function preset(v:"first_touch"|"follow_up"|"close_won"){
+    if (v==="first_touch"){
+      setSubject("Intro — Sublease-friendly lease request");
+      setBody("Hi! We work with vetted mid-term professionals. Interested in a corporate lease? Happy to send references, insurance, and deposits.");
+      setOutcome("follow_up");
+    } else if (v==="follow_up"){
+      setSubject("Following up — corporate lease proposal");
+      setBody("Just circling back on the proposal. We can adjust terms (deposit/length). Are you open to a quick call?");
+      setOutcome("follow_up");
+    } else {
+      setSubject("Approved — next steps");
+      setBody("Great news! Attaching addendum & COI draft. Which day works to sign and schedule move-in readiness?");
+      setOutcome("meeting_set");
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative w-full max-w-2xl rounded-xl border border-white/10 bg-[#0b141d] p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-lg font-semibold">Log Outreach</div>
+          <div className="flex gap-2 text-xs">
+            <button className="rounded bg-white/10 px-2 py-1" onClick={()=>preset("first_touch")}>Preset: First Touch</button>
+            <button className="rounded bg-white/10 px-2 py-1" onClick={()=>preset("follow_up")}>Preset: Follow-up</button>
+            <button className="rounded bg-white/10 px-2 py-1" onClick={()=>preset("close_won")}>Preset: Close-Won</button>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-3 text-sm">
+          <label className="block">
+            <div className="text-white/60 mb-1">Channel</div>
+            <select className="w-full rounded bg-white/5 border border-white/10 px-2 py-2"
+              value={channel} onChange={e=>setChannel(e.target.value as any)}>
+              {channels.map(c => <option key={c} value={c} className="bg-[#0b141d]">{c}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <div className="text-white/60 mb-1">Direction</div>
+            <select className="w-full rounded bg-white/5 border border-white/10 px-2 py-2"
+              value={direction} onChange={e=>setDirection(e.target.value as any)}>
+              <option className="bg-[#0b141d]" value="out">out</option>
+              <option className="bg-[#0b141d]" value="in">in</option>
+            </select>
+          </label>
+          <label className="block">
+            <div className="text-white/60 mb-1">Outcome</div>
+            <select className="w-full rounded bg-white/5 border border-white/10 px-2 py-2"
+              value={outcome} onChange={e=>setOutcome(e.target.value as any)}>
+              {outcomes.map(o => <option key={o} value={o} className="bg-[#0b141d]">{o}</option>)}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-3 grid gap-3">
+          <label className="block text-sm">
+            <div className="text-white/60 mb-1">Subject</div>
+            <input className="w-full rounded bg-white/5 border border-white/10 px-3 py-2"
+              value={subject} onChange={e=>setSubject(e.target.value)} />
+          </label>
+          <label className="block text-sm">
+            <div className="text-white/60 mb-1">Body / Call notes</div>
+            <textarea rows={6} className="w-full rounded bg-white/5 border border-white/10 px-3 py-2"
+              value={body} onChange={e=>setBody(e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mt-3 flex items-center gap-3">
+          <label className="text-sm">
+            <div className="text-white/60 mb-1">Next step (reminder)</div>
+            <input type="datetime-local" className="rounded bg-white/5 border border-white/10 px-3 py-2"
+              value={nextStepAt} onChange={e=>setNextStepAt(e.target.value)} />
+          </label>
+
+          <button onClick={log} disabled={loading}
+            className="ml-auto rounded bg-emerald-600 px-3 py-2 text-sm font-semibold hover:bg-emerald-500">
+            {loading ? "Saving…" : "Log & Follow-up"}
+          </button>
+          <button onClick={onClose} className="rounded bg-white/10 px-3 py-2 text-sm">Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+How to use on Owner detail page
+At top: import OutreachComposer from "@/components/OutreachComposer";
+Add a state const [composerOpen,setComposerOpen]=useState(false);
+Trigger with your existing CTA (“In-app” button). After save, refetch timeline.
+
+3) Component — Verification Card Right Panel (Drawer)
+
+File: src/components/VerificationCardPanel.tsx
+
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Note = { id:string; note:string; created_by:string; created_at:string };
+type Task = { id:string; title:string; status:"open"|"done"|"dismissed"; due_at:string|null; priority:string };
+type FileRow = { id:string; title:string|null; file_url:string; created_at:string };
+
+export default function VerificationCardPanel({
+  verifId,
+  open,
+  onClose,
+  conversationUrl // optional deep link to your chat thread
+}: {
+  verifId: string;
+  open: boolean;
+  onClose: () => void;
+  conversationUrl?: string | null;
+}) {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [files, setFiles] = useState<FileRow[]>([]);
+  const [noteText, setNoteText] = useState("");
+  const [taskTitle, setTaskTitle] = useState("");
+  const [dueAt, setDueAt] = useState("");
+
+  useEffect(()=>{ if(open) loadAll(); }, [open, verifId]);
+
+  async function loadAll(){
+    const [n,t,f] = await Promise.all([
+      fetch(`/api/verification/${verifId}/notes`).then(r=>r.json()),
+      fetch(`/api/verification/${verifId}/tasks`).then(r=>r.json()),
+      fetch(`/api/verification/${verifId}/files`).then(r=>r.json()),
+    ]);
+    setNotes(n.data||[]);
+    setTasks(t.data||[]);
+    setFiles(f.data||[]);
+  }
+
+  async function addNote(){
+    const r = await fetch(`/api/verification/${verifId}/notes`, { method:"POST", body: JSON.stringify({ note: noteText }) });
+    const j = await r.json(); if(!r.ok) return alert(j.error||"Failed");
+    setNoteText(""); loadAll();
+  }
+
+  async function addTask(){
+    const payload:any = { title: taskTitle };
+    if (dueAt) payload.due_at = new Date(dueAt).toISOString();
+    const r = await fetch(`/api/verification/${verifId}/tasks`, { method:"POST", body: JSON.stringify(payload) });
+    const j = await r.json(); if(!r.ok) return alert(j.error||"Failed");
+    setTaskTitle(""); setDueAt(""); loadAll();
+  }
+
+  async function toggleTask(id:string, status:"open"|"done"|"dismissed"){
+    const r = await fetch(`/api/verification/${verifId}/tasks`, { method:"PATCH", body: JSON.stringify({ id, status }) });
+    const j = await r.json(); if(!r.ok) return alert(j.error||"Failed");
+    loadAll();
+  }
+
+  async function uploadFile(file: File, title?: string){
+    const sign = await fetch(`/api/verification/${verifId}/files/sign`, {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ filename: file.name, mime: file.type })
+    }).then(r=>r.json());
+    const put = await fetch(sign.signedUrl, { method:"PUT", headers:{ "Content-Type": file.type || "application/octet-stream" }, body: file });
+    if (!put.ok) return alert("Upload failed");
+    const reg = await fetch(`/api/verification/${verifId}/files`, {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ path: sign.path, title: title || file.name })
+    });
+    if (!reg.ok) return alert("Register failed");
+    loadAll();
+  }
+  async function deleteFile(path:string){
+    const r = await fetch(`/api/verification/${verifId}/files?path=${encodeURIComponent(path)}`, { method:"DELETE" });
+    const j = await r.json(); if(!r.ok) return alert(j.error||"Failed");
+    loadAll();
+  }
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="flex-1 bg-black/50" onClick={onClose}/>
+      <div className="w-full max-w-md h-full bg-[#0b141d] border-l border-white/10 p-4 overflow-y-auto">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="text-lg font-semibold">Deal Panel</div>
+          <button onClick={onClose} className="ml-auto rounded bg-white/10 px-2 py-1 text-sm">Close</button>
+        </div>
+
+        {/* Quick Reply */}
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3 mb-4">
+          <div className="text-sm text-white/70 mb-2">Quick Reply</div>
+          {conversationUrl ? (
+            <a href={conversationUrl} className="text-xs rounded bg-emerald-600 px-3 py-2 font-semibold hover:bg-emerald-500 inline-block">
+              Open Conversation
+            </a>
+          ) : (
+            <div className="text-xs text-white/60">No thread linked.</div>
+          )}
+        </div>
+
+        {/* Notes */}
+        <section className="mb-4">
+          <div className="text-sm text-white/70 font-semibold mb-2">Notes</div>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input className="flex-1 rounded bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                     placeholder="Add a quick note…" value={noteText} onChange={e=>setNoteText(e.target.value)} />
+              <button onClick={addNote} className="rounded bg-white/10 px-3 py-2 text-sm">Add</button>
+            </div>
+            <ul className="divide-y divide-white/10 text-sm">
+              {notes.map(n=>(
+                <li key={n.id} className="py-2">
+                  <div>{n.note}</div>
+                  <div className="text-xs text-white/50">{new Date(n.created_at).toLocaleString()}</div>
+                </li>
+              ))}
+              {notes.length===0 && <li className="py-2 text-white/60">No notes yet.</li>}
+            </ul>
+          </div>
+        </section>
+
+        {/* Tasks */}
+        <section className="mb-4">
+          <div className="text-sm text-white/70 font-semibold mb-2">Tasks</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+            <input className="rounded bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                   placeholder="Task title" value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} />
+            <input type="datetime-local" className="rounded bg-white/5 border border-white/10 px-3 py-2 text-sm"
+                   value={dueAt} onChange={e=>setDueAt(e.target.value)} />
+          </div>
+          <button onClick={addTask} className="rounded bg-white/10 px-3 py-2 text-sm mb-2">Add Task</button>
+          <ul className="divide-y divide-white/10 text-sm">
+            {tasks.map(t=>(
+              <li key={t.id} className="py-2 flex items-center justify-between">
+                <div>
+                  <div className={`font-medium ${t.status==="done" ? "line-through text-white/50" : ""}`}>{t.title}</div>
+                  <div className="text-xs text-white/50">
+                    {t.due_at ? `Due ${new Date(t.due_at).toLocaleString()}` : "No due date"} • {t.priority}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={()=>toggleTask(t.id, t.status==="done" ? "open" : "done")} className="rounded bg-white/10 px-2 py-1 text-xs">
+                    {t.status==="done" ? "Reopen" : "Done"}
+                  </button>
+                  <button onClick={()=>toggleTask(t.id, "dismissed")} className="rounded bg-white/10 px-2 py-1 text-xs">Dismiss</button>
+                </div>
+              </li>
+            ))}
+            {tasks.length===0 && <li className="py-2 text-white/60">No tasks yet.</li>}
+          </ul>
+        </section>
+
+        {/* Files */}
+        <section className="mb-2">
+          <div className="text-sm text-white/70 font-semibold mb-2">Files</div>
+          <input type="file" onChange={async e=>{
+            const file = e.target.files?.[0]; if (!file) return;
+            await uploadFile(file);
+            e.currentTarget.value = "";
+          }} />
+          <ul className="divide-y divide-white/10 text-sm mt-2">
+            {files.map(f=>(
+              <li key={f.id} className="py-2 flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{f.title || f.file_url.split("/").pop()}</div>
+                  <div className="text-xs text-white/50">{new Date(f.created_at).toLocaleString()}</div>
+                </div>
+                <div className="flex gap-2">
+                  <a className="rounded bg-white/10 px-2 py-1 text-xs"
+                     href={`/api/storage/signed-view?bucket=crm-files&path=${encodeURIComponent(f.file_url)}`} target="_blank" rel="noreferrer">
+                    View
+                  </a>
+                  <button onClick={()=>deleteFile(f.file_url)} className="rounded bg-white/10 px-2 py-1 text-xs">Delete</button>
+                </div>
+              </li>
+            ))}
+            {files.length===0 && <li className="py-2 text-white/60">No files yet.</li>}
+          </ul>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+
+Optional helper for viewing files via a signed URL (if you want one): add a tiny route src/app/api/storage/signed-view/route.ts that reads bucket + path and returns a 302 redirect to a createSignedUrl from Supabase. (Or just surface the path for admins.)
+
+4) Wire-up examples
+4.1 Use OutreachComposer on Owner Detail
+
+In src/app/(app)/owners/[id]/page.tsx:
+
+Imports:
+
+import OutreachComposer from "@/components/OutreachComposer";
+import { useState } from "react";
+
+
+State + handler:
+
+const [composerOpen, setComposerOpen] = useState(false);
+
+async function refreshTimeline(){
+  const j = await fetch(`/api/owners/${params.id}/bundle`).then(r=>r.json());
+  setData(j);
+}
+
+
+Replace your “In-app” CTA with:
+
+<a onClick={()=>setComposerOpen(true)} className="cursor-pointer rounded bg-emerald-600 px-3 py-2 text-sm font-semibold flex items-center gap-2">
+  In-app
+</a>
+<OutreachComposer
+  ownerId={params.id}
+  open={composerOpen}
+  onClose={()=>setComposerOpen(false)}
+  onLogged={refreshTimeline}
+/>
+
+4.2 Add VerificationCardPanel to the Kanban board
+
+In src/app/(app)/verification/page.tsx:
+
+Imports & state:
+
+import VerificationCardPanel from "@/components/VerificationCardPanel";
+import { useState } from "react";
+
+const [panelOpen, setPanelOpen] = useState(false);
+const [activeVerifId, setActiveVerifId] = useState<string|null>(null);
+
+
+When rendering a card, add a click to open:
+
+<div
+  key={c.id}
+  className="rounded-lg border border-white/10 bg-[#0c1420] p-2 text-xs cursor-pointer"
+  onClick={() => { setActiveVerifId(c.id); setPanelOpen(true); }}
+  draggable
+  onDragStart={(e)=>e.dataTransfer.setData("card", c.id)}
+  onDragOver={(e)=>e.preventDefault()}
+>
+  {/* ... existing content ... */}
+</div>
+
+
+Mount the panel:
+
+<VerificationCardPanel
+  verifId={activeVerifId || ""}
+  open={panelOpen && !!activeVerifId}
+  onClose={()=>setPanelOpen(false)}
+  conversationUrl={null /* or `/messages/${conversation_id}` if you have it */}
+/>
+
+5) Tier gates (quick)
+
+Beta: show panel read/write Notes & Tasks; files limited to 3 per deal (enforce in POST /files with count check).
+
+Pro: remove file cap; enable due-date reminders (cron hitting crm_tasks).
+
+Premium: add bulk upload & export; add “email bridge” on composer (send actual emails/SMS).
+
+(You can check profiles.tier server-side in each route and return 403 when over limit.)
+
+1) Signed view helper (redirect to a temporary URL)
+
+Purpose: Safely let users view private Supabase Storage files (e.g., CRM docs) by issuing a short-lived signed URL and 302 redirecting to it.
+
+File: src/app/api/storage/signed-view/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+/**
+ * GET /api/storage/signed-view?bucket=crm-files&path=verification/<verifId>/<filename>
+ * Optional: ?expires=3600  (seconds, default 3600 = 1h)
+ *
+ * Requires current user to be authenticated. RLS on your data tables
+ * controls who can *discover* paths; this endpoint only signs & redirects.
+ */
+export async function GET(req: NextRequest) {
+  const sb = getSupabaseServer();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const url = new URL(req.url);
+  const bucket = url.searchParams.get("bucket") || "";
+  const path = url.searchParams.get("path") || "";
+  const expires = Math.max(60, Math.min(60 * 60 * 24, Number(url.searchParams.get("expires")) || 3600));
+
+  if (!bucket || !path) {
+    return NextResponse.json({ error: "bucket and path are required" }, { status: 400 });
+  }
+
+  const { data, error } = await sb.storage.from(bucket).createSignedUrl(path, expires);
+  if (error || !data?.signedUrl) {
+    return NextResponse.json({ error: error?.message || "Failed to sign URL" }, { status: 500 });
+  }
+
+  // 302 redirect so <a href="/api/storage/signed-view?..."> opens the file directly.
+  return NextResponse.redirect(data.signedUrl, { status: 302 });
+}
+
+
+How to use in UI (example):
+
+<a
+  href={`/api/storage/signed-view?bucket=crm-files&path=${encodeURIComponent(file.file_url)}`}
+  target="_blank" rel="noreferrer"
+  className="rounded bg-white/10 px-2 py-1 text-xs"
+>
+  View
+</a>
+
+2) Task reminder “cron” (API + schedule + tiny notifications table)
+
+We’ll implement:
+
+A notifications table (lightweight bell feed).
+
+A secure cron API route that finds due tasks and inserts notifications.
+
+A Vercel Cron (or GitHub Actions) schedule that hits the API with a secret.
+
+Simple tier logic (Premium: also flag SLA on overdue verification stages, optional).
+
+2.1 SQL migration (notifications)
+
+File: supabase/migrations/65_crm_notifications.sql
+
+create table if not exists public.crm_notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  body text,
+  link text,                         -- e.g., "/verification/<id>"
+  read_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table public.crm_notifications enable row level security;
+
+-- Basic RLS: users can only see their own notifications
+create policy "notif read own" on public.crm_notifications
+  for select using (auth.uid() = user_id);
+
+create policy "notif write own" on public.crm_notifications
+  for insert with check (auth.uid() = user_id);
+
+-- Optional: allow system/cron inserts by bypassing RLS with service role in server context.
+
+
+If your server uses the Supabase service role in API routes (via getSupabaseServer() on the server side), you may skip the insert own policy and perform system inserts; otherwise keep it and insert for the assignee using service role.
+
+2.2 Cron route (secure by shared secret)
+
+File: src/app/api/cron/tasks-due/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+const CRON_SECRET = process.env.CRON_SECRET || "";
+
+/**
+ * POST /api/cron/tasks-due
+ * Headers: x-cron-secret: <CRON_SECRET>
+ *
+ * Behavior:
+ *  - Find open tasks with due_at <= now()
+ *  - Create notifications for assignee (if not already created within last 24h for same task)
+ *  - (Optional) Premium: flag verifications that exceeded stage SLA (see SLA sketch below)
+ */
+export async function POST(req: NextRequest) {
+  const incoming = req.headers.get("x-cron-secret") || "";
+  if (!CRON_SECRET || incoming !== CRON_SECRET) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const sb = getSupabaseServer();
+
+  // 1) Fetch due tasks (open + due)
+  const { data: tasks, error: taskErr } = await sb
+    .from("crm_tasks")
+    .select("id, title, due_at, assignee_id, verif_id, status")
+    .eq("status", "open")
+    .lte("due_at", new Date().toISOString())
+    .limit(500);
+  if (taskErr) return NextResponse.json({ error: taskErr.message }, { status: 500 });
+
+  let created = 0;
+
+  // 2) For each task, insert a notification if not recently created (24h dedupe)
+  for (const t of tasks || []) {
+    if (!t.assignee_id) continue;
+
+    // Check recent notification with same link to avoid spam
+    const link = t.verif_id ? `/verification?card=${t.verif_id}` : "/owners";
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+
+    const { data: existing } = await sb
+      .from("crm_notifications")
+      .select("id")
+      .eq("user_id", t.assignee_id)
+      .eq("link", link)
+      .gte("created_at", since)
+      .limit(1);
+
+    if (existing && existing.length) continue;
+
+    const title = "Task due";
+    const body = `${t.title}${t.due_at ? ` (due ${new Date(t.due_at).toLocaleString()})` : ""}`;
+
+    const { error: insErr } = await sb
+      .from("crm_notifications")
+      .insert({ user_id: t.assignee_id, title, body, link });
+    if (!insErr) created++;
+  }
+
+  // 3) (Optional Premium) Stage SLA checks – see the sketch below
+  // Example: flip a field/insert notifications if a card sits > N days in a stage.
+
+  return NextResponse.json({ ok: true, tasks_checked: tasks?.length || 0, notifications_created: created });
+}
+
+
+Env var (add to your project):
+
+CRON_SECRET=your-long-random-string
+
+2.3 Schedule it
+Vercel Cron (recommended)
+
+Create /vercel.json or extend yours:
+
+{
+  "crons": [
+    {
+      "path": "/api/cron/tasks-due",
+      "schedule": "*/15 * * * *",
+      "headers": {
+        "x-cron-secret": "@cron-secret"
+      }
+    }
+  ]
+}
+
+
+Then add a Vercel Environment Variable named cron-secret with the same value as CRON_SECRET.
+
+GitHub Actions (alternative)
+
+File: .github/workflows/cron-tasks-due.yml
+
+name: Task reminders
+on:
+  schedule:
+    - cron: "*/30 * * * *" # every 30 minutes
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit cron endpoint
+        run: |
+          curl -sS -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://<your-domain>/api/cron/tasks-due
+
+
+Add Actions Secret CRON_SECRET in your repo settings.
+
+2.4 (Optional) Premium SLA sketch
+
+Add an SLA setting per stage (days limit), and flag cards exceeding it.
+
+SQL (minimal):
+
+alter table public.verification_stages
+  add column if not exists sla_days int; -- null = no SLA
+
+-- Add a column on property_verifications to store the datetime it *entered* the current stage
+alter table public.property_verifications
+  add column if not exists stage_entered_at timestamptz;
+
+-- Ensure you update stage_entered_at whenever stage_id changes (API PATCH does this).
+
+
+Update your move code (already patching stage):
+
+// when moving a card
+await sb.from("property_verifications")
+  .update({
+    stage_id: toStageId,
+    stage_entered_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  })
+  .eq("id", cardId);
+
+
+Extend cron route to flag overdue cards:
+
+// Pseudo inside POST /api/cron/tasks-due
+const { data: stages } = await sb.from("verification_stages").select("id, name, sla_days");
+const slaMap = new Map(stages?.map(s => [s.id, s.sla_days]) || []);
+const { data: cards } = await sb.from("property_verifications")
+  .select("id, stage_id, stage_entered_at, assigned_to")
+  .eq("status", "active")
+  .limit(1000);
+
+for (const c of cards || []) {
+  const sla = slaMap.get(c.stage_id);
+  if (!sla || !c.stage_entered_at) continue;
+  const exceeded = Date.now() - new Date(c.stage_entered_at).getTime() > sla * 86400_000;
+  if (!exceeded || !c.assigned_to) continue;
+
+  // notify assignee (dedupe like above)
+  const link = `/verification?card=${c.id}`;
+  // ... insert notification "SLA breach: card in stage > SLA days"
+}
+
+2.5 Minimal bell feed UI (optional)
+
+File: src/app/(app)/notifications/page.tsx
+
+"use client";
+import { useEffect, useState } from "react";
+
+export default function NotificationsPage(){
+  const [rows, setRows] = useState<any[]>([]);
+  useEffect(()=>{
+    fetch("/api/notifications").then(r=>r.json()).then(j=>setRows(j.data||[]));
+  },[]);
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Notifications</h1>
+      <ul className="divide-y divide-white/10">
+        {rows.map(n=>(
+          <li key={n.id} className="py-3">
+            <div className="font-medium">{n.title}</div>
+            {n.body && <div className="text-sm text-white/70">{n.body}</div>}
+            {n.link && <a className="text-xs text-emerald-300 underline" href={n.link}>Open</a>}
+            <div className="text-xs text-white/50">{new Date(n.created_at).toLocaleString()}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
+API for notifications:
+File: src/app/api/notifications/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+export async function GET(_: NextRequest){
+  const sb = getSupabaseServer();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data, error } = await sb
+    .from("crm_notifications")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ data });
+}
+
+2.6 Quick checklist
+
+ Run the SQL migration for crm_notifications.
+
+ Add CRON_SECRET env var in your app (and on Vercel/GHA).
+
+ Deploy POST /api/cron/tasks-due and schedule it (Vercel Cron or GitHub Actions).
+
+ (Optional) Add SLA columns & logic for Premium.
+
+ Use the signed-view endpoint wherever you show private files.
+
+ 
