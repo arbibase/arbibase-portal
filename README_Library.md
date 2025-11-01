@@ -391,3 +391,356 @@ AI Clause/Addendum Generator: endpoint POST /api/ai/clause → uses inputs (juri
 Auto-Update Alerts: when library_regions.last_update changes for a user’s saved jurisdiction, notify via in-app bell/email.
 
 Export Service: server route that converts body_md → PDF/DOCX (e.g., md-to-pdf, pdf-lib, or a headless Chromium render). After export, upload to Supabase Storage and set file_url.
+
+1) SQL hardening & performance
+1.1 Enums + FTS + useful indexes
+-- 40a_enums.sql
+do $$ begin
+  create type regulation_level_enum as enum ('allowed','conditional','restricted');
+exception when duplicate_object then null; end $$;
+
+alter table public.library_regions
+  alter column regulation_level type regulation_level_enum using regulation_level::regulation_level_enum;
+
+-- FTS: generated tsvectors for fast search on body_md/title
+alter table public.library_clauses
+  add column if not exists tsv tsvector
+  generated always as (
+    setweight(to_tsvector('simple', coalesce(title,'')), 'A') ||
+    setweight(to_tsvector('simple', coalesce(body_md,'')), 'B')
+  ) stored;
+
+create index if not exists idx_clauses_tsv on public.library_clauses using gin(tsv);
+create index if not exists idx_clauses_tags on public.library_clauses using gin(tags);
+
+-- Regions key helpers
+create unique index if not exists uq_regions_key on public.library_regions(jurisdiction_key);
+create index if not exists idx_regions_state on public.library_regions(state);
+
+1.2 Clause versioning (audit trail)
+-- 41a_clause_versions.sql
+create table if not exists public.library_clause_versions (
+  id uuid primary key default gen_random_uuid(),
+  clause_id uuid not null references public.library_clauses(id) on delete cascade,
+  version int not null,
+  title text not null,
+  body_md text not null,
+  tags text[] default '{}',
+  created_at timestamptz default now()
+);
+
+-- trigger to snapshot on update
+create or replace function public.snapshot_clause_version()
+returns trigger as $$
+begin
+  insert into public.library_clause_versions (clause_id, version, title, body_md, tags)
+  values (new.id, new.version, new.title, new.body_md, new.tags);
+  return new;
+end $$ language plpgsql;
+
+drop trigger if exists trg_snapshot_clause on public.library_clauses;
+create trigger trg_snapshot_clause
+after insert or update on public.library_clauses
+for each row execute function public.snapshot_clause_version();
+
+1.3 Storage for exports
+-- No SQL needed for bucket, but name it consistently:
+-- Supabase Storage bucket: `library_exports`
+-- (Create via Dashboard or CLI; make it private)
+
+2) Security: admin write policies + tier gates
+2.1 Admin writes (regions/clauses)
+
+Assuming profiles.is_admin boolean:
+
+alter table public.profiles add column if not exists is_admin boolean default false;
+
+-- RLS: only admins can write regions/clauses
+create policy if not exists "regions admin write" on public.library_regions
+  for insert with check (exists (select 1 from public.profiles p where p.id=auth.uid() and p.is_admin))
+  to authenticated;
+
+create policy if not exists "regions admin update" on public.library_regions
+  for update using (exists (select 1 from public.profiles p where p.id=auth.uid() and p.is_admin))
+  with check (exists (select 1 from public.profiles p where p.id=auth.uid() and p.is_admin))
+  to authenticated;
+
+create policy if not exists "clauses admin write" on public.library_clauses
+  for insert with check (exists (select 1 from public.profiles p where p.id=auth.uid() and p.is_admin))
+  to authenticated;
+
+create policy if not exists "clauses admin update" on public.library_clauses
+  for update using (exists (select 1 from public.profiles p where p.id=auth.uid() and p.is_admin))
+  with check (exists (select 1 from public.profiles p where p.id=auth.uid() and p.is_admin))
+  to authenticated;
+
+2.2 Tier enforcement (city-level lock for Beta)
+
+In your regions API route, enforce at the top:
+
+// src/app/api/library/regions/route.ts (add near top after auth fetch if you have one)
+import { getUserTier } from "@/lib/tierUser"; // small helper you add
+
+// ...
+const tier = await getUserTier(); // 'beta'|'pro'|'premium'
+if (tier === 'beta') {
+  const cityParam = new URL(req.url).searchParams.get("city");
+  if (cityParam) {
+    return NextResponse.json({ error: "City-level access requires Pro plan." }, { status: 403 });
+  }
+}
+
+
+(Same pattern can block county if you want Beta=state-only.)
+
+3) API: fast search & admin CRUD
+3.1 FTS endpoint (uses tsv)
+// src/app/api/library/clauses/search/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+export async function GET(req: NextRequest) {
+  const sb = getSupabaseServer();
+  const q = new URL(req.url).searchParams.get("q") || "";
+  const jur = new URL(req.url).searchParams.get("jurisdiction") || "";
+
+  let query = sb.from("library_clauses")
+    .select("id, title, body_md, jurisdiction_key, tags, version, is_global")
+    .or(`jurisdiction_key.eq.${jur},is_global.eq.true`);
+
+  if (q) {
+    query = query.filter("tsv", "fts", q); // uses the GIN index
+  }
+
+  const { data, error } = await query.limit(50);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ data });
+}
+
+3.2 Admin upsert (regions/clauses)
+// src/app/api/admin/library/regions/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+
+export async function POST(req:NextRequest){
+  const sb = getSupabaseServer();
+  const { data:{ user } } = await sb.auth.getUser();
+  if(!user) return NextResponse.json({error:"Unauthorized"},{status:401});
+  const { data: prof } = await sb.from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+  if(!prof?.is_admin) return NextResponse.json({error:"Forbidden"},{status:403});
+
+  const payload = await req.json(); // { state, county?, city?, regulation_level, summary, requirements, sources, risk_score }
+  payload.jurisdiction_key = [payload.state, payload.county, payload.city].filter(Boolean).join(":");
+
+  const { data, error } = await sb.from("library_regions")
+    .upsert(payload, { onConflict: "jurisdiction_key" }).select("id").single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ id: data.id });
+}
+
+
+(Mirror for /api/admin/library/clauses with version = version + 1 on updates.)
+
+4) Export to PDF (Premium)
+
+Two pieces:
+
+Route that renders body_md → HTML → PDF
+
+Upload to Supabase Storage (library_exports) and save file_url
+
+This uses puppeteer-core + @sparticuz/chromium for Vercel/Serverless. If you’re on a full Node server, regular puppeteer is fine.
+
+// src/app/api/library/documents/[id]/export/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServer } from "@/lib/supabaseServer";
+import { remark } from "remark";
+import html from "remark-html";
+
+// If on serverless:
+import chromium from "@sparticuz/chromium-min";
+import puppeteer from "puppeteer-core";
+
+export const runtime = "nodejs"; // ensure Node runtime
+
+export async function POST(_:NextRequest, { params }:{ params:{ id:string } }) {
+  const sb = getSupabaseServer();
+  const { data:{ user } } = await sb.auth.getUser();
+  if(!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // tier check
+  const { data: prof } = await sb.from("profiles").select("tier").eq("id", user.id).maybeSingle();
+  if (prof?.tier !== 'premium') return NextResponse.json({ error: "Export is Premium-only." }, { status: 403 });
+
+  const { data: doc, error } = await sb.from("library_documents")
+    .select("id, user_id, title, body_md").eq("id", params.id).single();
+  if (error || !doc || doc.user_id !== user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // MD -> HTML
+  const htmlBody = String(await remark().use(html).process(doc.body_md));
+  const pageHtml = templateHTML(doc.title, htmlBody);
+
+  // Render with Chromium
+  const executablePath = await chromium.executablePath();
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath,
+    headless: true,
+  });
+  const page = await browser.newPage();
+  await page.setContent(pageHtml, { waitUntil: "networkidle0" });
+  const pdf = await page.pdf({ format: "Letter", printBackground: true });
+  await browser.close();
+
+  // Upload to Storage
+  const filePath = `exports/${doc.id}.pdf`;
+  const { error: upErr } = await sb.storage.from("library_exports").upload(filePath, pdf, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+
+  const { data: pub } = sb.storage.from("library_exports").getPublicUrl(filePath);
+  await sb.from("library_documents").update({ file_url: pub?.publicUrl }).eq("id", doc.id);
+
+  return NextResponse.json({ file_url: pub?.publicUrl });
+}
+
+function templateHTML(title:string, bodyHtml:string){
+  return `<!doctype html>
+<html><head>
+<meta charset="utf-8" />
+<title>${escapeHtml(title)}</title>
+<style>
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system; margin: 32px; color: #0f172a; }
+  h1,h2,h3 { color: #0b1324; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .sub { color:#475569; font-size:12px; margin-bottom:24px; }
+  .box { border:1px solid #e2e8f0; border-radius:12px; padding:16px; }
+  ul { margin-left: 18px; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <div class="sub">Generated via ArbiBase Library</div>
+  <div class="box">${bodyHtml}</div>
+</body></html>`;
+}
+function escapeHtml(s:string){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!)); }
+
+
+Client button (Premium only):
+
+// On Library page, replace disabled Export button:
+<button
+  onClick={async ()=>{
+    const r = await fetch(`/api/library/documents/${savedDocId}/export`, { method:'POST' });
+    const j = await r.json();
+    if(j.file_url) window.open(j.file_url, "_blank");
+  }}
+  className="rounded bg-emerald-600 px-3 py-2 text-sm font-semibold hover:bg-emerald-500"
+>
+  Export PDF (Premium)
+</button>
+
+5) “Watch updates” alerts (optional but powerful)
+5.1 User watchlist
+create table if not exists public.library_watchlist (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  jurisdiction_key text not null,
+  created_at timestamptz default now(),
+  unique (user_id, jurisdiction_key)
+);
+alter table public.library_watchlist enable row level security;
+create policy "watchlist self" on public.library_watchlist
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+5.2 Edge Function to notify on changes
+
+Add a trigger to enqueue a notification row when library_regions.last_update changes.
+
+create table if not exists public.library_updates_queue (
+  id bigserial primary key,
+  jurisdiction_key text not null,
+  changed_at timestamptz default now(),
+  processed boolean default false
+);
+
+create or replace function public.enqueue_region_update()
+returns trigger as $$
+begin
+  if (old.* is distinct from new.*) then
+    insert into public.library_updates_queue (jurisdiction_key) values (new.jurisdiction_key);
+  end if;
+  return new;
+end $$ language plpgsql;
+
+drop trigger if exists trg_enqueue_region_update on public.library_regions;
+create trigger trg_enqueue_region_update
+after update on public.library_regions
+for each row execute function public.enqueue_region_update();
+
+
+A scheduled Edge Function (every hour) reads unprocessed rows, finds subscribers in library_watchlist, and sends in-app notification (or email) — and marks processed.
+
+(If you don’t want Edge Functions yet, you can poll from the app on login and show a bell badge.)
+
+6) Tiny UX upgrades
+
+Clause search: swap your current GET to the FTS route for faster/snappier results.
+
+Jurisdiction builder: add a “Watch” toggle next to the jurisdiction badge:
+
+<label className="flex items-center gap-2 text-xs">
+  <input type="checkbox" checked={watched} onChange={toggleWatch} />
+  Watch updates for {region.jurisdiction_key}
+</label>
+
+
+Conflict warnings: when user mixes global + city clause that contradicts state (later; simple heuristic: tag “overrides_state” and warn).
+
+7) Seed data (quick start)
+-- TX (state)
+insert into public.library_regions (state, county, city, jurisdiction_key, regulation_level, summary, requirements, sources, risk_score)
+values (
+  'TX', null, null, 'TX', 'conditional',
+  'STR allowed varies by city; many require hotel occupancy tax registration. MTR (30+ days) broadly allowed.',
+  '{"permits":["State hotel occupancy tax registration (as applicable)"],"taxes":["HOT 6% state + local"],"occupancy_caps":null,"hoa":"Check community rules"}'::jsonb,
+  '[{"title":"Texas HOT","url":"https://comptroller.texas.gov/taxes/hotel/"}]'::jsonb,
+  5
+)
+on conflict (jurisdiction_key) do nothing;
+
+-- Clause examples
+insert into public.library_clauses (jurisdiction_key, title, body_md, tags, is_global)
+values
+('TX', 'Local Compliance', 'Operator shall obtain and maintain all registrations, permits, and tax accounts required by the city, county, or state for short-term or mid-term rentals.', '{compliance,permits,tax}', false),
+('TX:Austin', 'Austin STR Notice', 'Operator acknowledges Austin-specific STR requirements and agrees to adhere to applicable limits and enforcement provisions.', '{austin,compliance}', false),
+('GLOBAL', 'Quiet Hours', 'Quiet hours are 10:00 PM to 7:00 AM. Parties and events are prohibited without prior written consent.', '{noise,house_rules}', true)
+;
+
+8) Integrations recap (so data flows clean)
+
+Estimator/ROI → Library: when user clicks “Generate Addendum,” pre-select tags (e.g., sublease, utilities) and jurisdiction from property.
+
+Messaging: drop addendum as attachment into the owner thread after export (Premium).
+
+Portfolio: link each property to its last exported addendum (file_url) for quick retrieval.
+
+What changed vs. your baseline
+
+Faster searching (FTS + GIN)
+
+Admin-safe writes with RLS
+
+Clause version history
+
+Real PDF export to Storage (Premium)
+
+“Watch updates” scaffolding for jurisdiction alerts
+
+Beta/Pro gating enforced server-side
