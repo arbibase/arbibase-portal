@@ -28,7 +28,6 @@ This document outlines the internal data architecture, integrations, and operati
 
 ## ⚙️ High-Level Data Flow Architecture
 
-```mermaid
 flowchart LR
   subgraph FE[Next.js Frontend]
     UI_Est[Revenue Estimator]
@@ -387,3 +386,4 @@ Founder / Product: Christopher Larico Vargas
 Docs Maintainer: ArbiBase Engineering
 
 © 2025 ArbiBase — The Verified Property Layer for Arbitrage.
+```mermaid
