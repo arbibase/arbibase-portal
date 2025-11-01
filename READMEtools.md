@@ -384,6 +384,532 @@ Technical Lead: Daniel Arotoma
 Founder / Product: Christopher Larico Vargas
 
 Docs Maintainer: ArbiBase Engineering
+----------------------------------------------------------------------------------------------------------------------------
+🧮 Revenue Estimator
+
+Goal: Instant viability check (STR/MTR), push 1 click to ROI.
+
+Data model (Supabase)
+
+properties(id, user_id, address, city, state, zip, type, beds, baths, sqft, status)
+
+revenue_estimates(id, property_id, mode, inputs jsonb, assumptions jsonb, gross_rev, expenses, net_profit, break_even_occ, viability_score, created_at)
+
+APIs (Next.js route handlers → later FastAPI)
+
+POST /api/estimates (create)
+
+GET /api/estimates/:id
+
+POST /api/estimates/:id/recompute (when market snapshot updates)
+
+UI (React)
+
+EstimatorForm.tsx (address → geocode; rent; ADR/occ sliders; STR/MTR toggle)
+
+EstimatorResult.tsx (revenue, costs, NOI, score; CTA “Deep ROI” + “Save → Portfolio”)
+
+Core logic
+
+gross = adr * occ * 30
+
+ops = cleaning(turns) + utilities + supplies + mgmtPct*gross + platformFee*gross
+
+net = gross - rent - ops
+
+breakEvenOcc = (rent+ops_fixed) / (adr*30)
+
+viability = weighted score(net, margin, breakEvenOcc, risk)
+
+Pull defaults from market_snapshots(adr, occ, seasonality) by ZIP.
+
+Tier gates
+
+Beta: limited inputs + no sensitivity.
+
+Pro: advanced inputs, seasonality slider, neighborhood comp prefill.
+
+Premium: batch/multi-property + sensitivity grid (+/- ADR & OCC).
+
+QA (acceptance)
+
+Same inputs → deterministic outputs.
+
+Market fallback when no ZIP match.
+
+Save → creates portfolio_properties row.
+
+v1.1+
+
+Sensitivity heatmap; caching (key: zip|beds|type|rent|assumptions_hash).
+
+💰 ROI Calculator
+
+Goal: Investment depth (CoC, payback, 5-year).
+
+Data model
+
+roi_analyses(id, property_id, inputs jsonb, coc, payback_months, annual_roi, five_year_profit, sensitivity jsonb, created_at)
+
+APIs
+
+POST /api/roi (create from Estimator payload or manual)
+
+GET /api/roi/:id
+
+POST /api/roi/:id/sensitivity
+
+UI
+
+RoiForm.tsx (initial costs: furniture, deposit, setup; term; ops)
+
+RoiGraphs.tsx (CoC, payback, projection; scenario compare)
+
+CTA: “Save to Portfolio” (writes KPIs baseline)
+
+Core logic
+
+cap_invested = furniture + deposit + setup
+
+net_monthly = estimator.net
+
+coc = (net_monthly*12)/cap_invested
+
+payback = cap_invested / net_monthly
+
+annual_roi = ((net_monthly*12) - (depreciation?))/cap_invested
+
+N simple scenarios: +/- ADR, +/- OCC, +/- Rent.
+
+Tier gates
+
+Beta: teaser read-only.
+
+Pro: full calc + 2-scenario table.
+
+Premium: multi-property compare + export CSV.
+
+QA
+
+Unit tests for math; scenario rows ordered by ROI desc.
+
+v1.1+
+
+Include deposit amortization; churn/renewal probability; tax toggle.
+
+🌍 Market Dashboard
+
+Goal: Market intel backbone for estimator/ROI + scouting.
+
+Data model
+
+market_snapshots(id, geo_key, adr, occ, lt_rent, risk_score, seasonality_index, as_of)
+
+market_history(geo_key, metric, ts, value) (optional v1.1)
+
+APIs
+
+GET /api/markets?geo=zip|city&metric=adr,occ,...
+
+GET /api/markets/top?by=roi_spread&limit=5
+
+UI
+
+MarketMap.tsx (Mapbox; choropleth by metric)
+
+MarketPanels.tsx (ADR, OCC, LT rent, spread, risk; time series)
+
+Button: “Use these values in Estimator”
+
+Core logic
+
+spread = adr*occ*30 - lt_rent
+
+avg_coc heuristic from spread vs typical costs
+
+risk_score from Library rules by city/state.
+
+Tier gates
+
+Beta: 1 city, simplified panel.
+
+Pro: national, ZIP filters, compare 3.
+
+Premium: historic + predictive; exportable.
+
+QA
+
+Geo tiles load <500ms cached; values round consistently.
+
+v1.1+
+
+ZIP ranking; anomaly detection.
+
+📈 Portfolio Analytics
+
+Goal: Command center for saved/verified/live properties.
+
+Data model
+
+portfolio_properties(id, user_id, property_id, stage, tags[], notes)
+
+portfolio_kpis_monthly(property_id, month, gross, expenses, net, occ_rate, roi_pct, trend)
+
+APIs
+
+POST /api/portfolio/properties
+
+GET /api/portfolio/summary
+
+POST /api/portfolio/kpi:upsert
+
+UI
+
+PortfolioTable.tsx (filters; stage chips)
+
+PropertyKpiCard.tsx (mini charts; trend marker)
+
+Exports (Premium): CSV/API.
+
+Core logic
+
+Trend = net_monthly vs previous 3-month MA
+
+Benchmarks = compare to market_snapshots of property ZIP.
+
+Tier gates
+
+Beta: disabled until 1st verified prop.
+
+Pro: up to 10 properties.
+
+Premium: unlimited + export + AI tips.
+
+QA
+
+Save from Estimator/ROI appears instantly.
+
+KPI edit permitted with audit trail.
+
+v1.1+
+
+Alerts (drop in occ > X%).
+
+📚 ArbiBase Library
+
+Goal: Compliance hub and docs builder.
+
+Data model
+
+library_regions(id, state, county, city, regulation, permits jsonb, taxes jsonb, last_update)
+
+library_clauses(id, jurisdiction_key, title, body_md, tags[], version)
+
+library_documents(id, user_id, property_id, type, body_md, file_url)
+
+APIs
+
+GET /api/library/regions?city=…
+
+GET /api/library/clauses?jurisdiction=…&tag=sublease
+
+POST /api/library/documents (generate & save)
+
+UI
+
+ComplianceBanner (Allowed / Conditional / Restricted)
+
+ClauseBuilder (search + assemble → preview → export)
+
+Core logic
+
+Region key = ${state}:${county?}:${city?}
+
+Risk = map(Allowed=2, Conditional=6, Restricted=9)
+
+Tier gates
+
+Beta: state-level read-only.
+
+Pro: full access + clause generator.
+
+Premium: multi-state packs, white-label templates, updates.
+
+QA
+
+Jurisdiction cascade works; exports render UTF-8.
+
+v1.1+
+
+Auto-permit checklist generation.
+
+💬 In-App Messaging (Owner ↔ Operator)
+
+Goal: Negotiations with attachments, linked to properties.
+
+Data model
+
+messages_threads(id, property_id, owner_contact jsonb, status, last_activity_at)
+
+messages(id, thread_id, sender, body, attachments[], created_at)
+
+APIs
+
+POST /api/threads (create for property)
+
+GET /api/threads/:id/messages (cursor)
+
+POST /api/messages (send; signed upload URL)
+
+UI
+
+ThreadList (by property; unread badges)
+
+ChatWindow (composer; drag-drop files; quick templates)
+
+“Use AI” button (Premium) to draft/counter.
+
+Core logic
+
+Realtime via Supabase Realtime; RLS per participant.
+
+Thread status auto-changes after 7d inactivity → pending.
+
+Tier gates
+
+Beta: off (show email/phone contact).
+
+Pro: 5 active threads.
+
+Premium: unlimited + files + AI drafts.
+
+QA
+
+RLS prevents cross-user read.
+
+File types restricted + AV scan (queue).
+
+v1.1+
+
+Owner guest portal link per thread.
+
+🧠 Personal AI Assistant (modules)
+
+Goal: Embedded multi-agent automation (analysis, clauses, negotiation, listings).
+
+Data model
+
+ai_jobs(id, type, input jsonb, output jsonb, latency_ms, created_at)
+
+Re-use Library + portfolio data.
+
+APIs
+
+POST /api/ai/property-analysis
+
+POST /api/ai/description
+
+POST /api/ai/clause
+
+POST /api/ai/negotiation
+
+UI (inline buttons)
+
+Estimator/ROI: “Suggest improvements”
+
+Library: “Draft clause/addendum”
+
+Messaging: “Draft counter-offer”
+
+Property page: “Generate listing description”
+
+Core logic
+
+Prompt templates + guardrails; deterministic params for reproducibility.
+
+Redact PII before model call; log output in ai_jobs.
+
+Tier gates
+
+Pro: 4 assistants.
+
+Premium: all + custom prompt memory per user.
+
+QA
+
+95% prompt success, <8s P95 latency, no PII leaks in logs.
+
+v1.1+
+
+Fine-tuned small model for clause boilerplates.
+
+🤖 AI Chat Assistant (Support/Tech/Billing)
+
+Goal: Frontline support; escalate to human.
+
+Data model
+
+support_tickets(id, user_id, type, status, priority, created_at, closed_at)
+
+APIs
+
+POST /api/support/chat (LLM tool-use)
+
+POST /api/support/tickets (create)
+
+PATCH /api/support/tickets/:id
+
+UI
+
+Global chat widget; department routing; article suggestions.
+
+Core logic
+
+Tier-aware answers (plan in JWT claims).
+
+Escalation rules: unresolved after 3 exchanges → ticket.
+
+Tier gates
+
+Beta: FAQ only.
+
+Pro: priority tech/billing.
+
+Premium: concierge onboarding.
+
+QA
+
+Ticket created when unresolved; SLA timers correct.
+
+v1.1+
+
+NPS after ticket close.
+
+🏠 Concierge Sourcing (Premium)
+
+Goal: Human-assisted property sourcing for verified operators.
+
+Data model
+
+concierge_requests(id, operator_id, criteria jsonb, status, matches_count, created_at)
+
+concierge_matches(id, request_id, property_id, match_score)
+
+APIs
+
+POST /api/concierge/requests
+
+GET /api/concierge/requests/:id/matches
+
+UI
+
+Request form; match feed; open thread with owner.
+
+Core logic
+
+Match score = cosine of criteria vs property feature vector.
+
+Tier gates
+
+Premium + KYC verified.
+
+QA
+
+Only verified users can submit; matches sorted desc.
+
+v1.1+
+
+SLA tracking; discounted fee workflow.
+
+🪪 Verified Operator (KYC)
+
+Goal: Trust gate for messaging and concierge.
+
+Data model
+
+kyc_verifications(id, operator_id, status, evidence_urls[], verified_at, level)
+
+APIs
+
+POST /api/kyc/start (get upload links)
+
+POST /api/kyc/submit (callback)
+
+GET /api/kyc/status
+
+UI
+
+KYC wizard; badge in profile & property cards.
+
+Core logic
+
+Signed URLs; webhook from IDV provider; RLS to operator.
+
+Tier gates
+
+Pro: required for messaging.
+
+Premium: enhanced verification unlocks concierge.
+
+QA
+
+Rejected docs loop; audit logs for each status change.
+
+🔗 Data / API Access (Premium Enterprise)
+
+Goal: External analytics & integrations.
+
+Data model
+
+api_keys(id, user_id, scope, revoked, last_used_at)
+
+webhook_endpoints(id, user_id, url, events[], active)
+
+APIs
+
+POST /api/dev/api-keys
+
+GET /api/v1/portfolio/:id/kpis?from=&to=
+
+GET /api/v1/markets?geo=…
+
+Webhooks: roi.computed, portfolio.updated
+
+UI
+
+Developer portal (keys, scopes, usage).
+
+Core logic
+
+OAuth2 or HMAC keys; rate limiting; idempotency keys for webhooks.
+
+QA
+
+429 on abuse; scopes enforced by RLS policies.
+
+v1.1+
+
+GraphQL facade; signed CSV exports.
+
+Implementation Timeline (aggressive but realistic)
+
+Sprint 1 (2 weeks): Estimator v1, Library (state-level), Tier gates, Portfolio save, basic RLS.
+Sprint 2 (2 weeks): ROI v1, Market basics (ZIP metrics), Portfolio KPIs, caching.
+Sprint 3 (2 weeks): Messaging v1 (Pro), AI Chat v1 (FAQ), KYC v1 (badge).
+Sprint 4 (2 weeks): Pro polish (sensitivity, scenario compare), Market compare, reports.
+Sprint 5 (2–3 weeks): Premium: AI assistants, export/API, concierge request MVP.
+
+DevOps (now, not later)
+
+Supabase RLS for all user-owned rows.
+
+ENV secrets: Supabase, Mapbox, IDV, Payments, LLM.
+
+GitHub Actions: type-check, lint, unit, preview deploy.
+
+Error tracking: Sentry; Usage telemetry: PostHog or Supabase logs.
+
+Caching: Redis Cloud (market + estimator/roi hash).
 
 © 2025 ArbiBase — The Verified Property Layer for Arbitrage.
 ```mermaid
