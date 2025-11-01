@@ -333,17 +333,44 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content - 2/3 width */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Trending Opportunities - Only show if we have data */}
-          {spotlights.length > 0 && (
-            <section>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-white">Trending Opportunities</h2>
-                <Link href="/properties" className="text-sm text-emerald-400 hover:text-emerald-300">
-                  View all →
+          {/* Empty State OR Content */}
+          {operatorStats.verifiedDoors === 0 ? (
+            <section className="rounded-2xl border border-emerald-400/20 bg-linear-to-br from-emerald-500/10 via-transparent to-sky-500/10 p-8 text-center">
+              <div className="mb-4 mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20">
+                <Sparkles size={28} className="text-emerald-400" />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-white">Ready to find your first verified door?</h3>
+              <p className="mb-6 text-sm text-white/60">
+                Browse our curated inventory of landlord-approved properties—no cold calls, no surprises.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link
+                  href="/properties"
+                  className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-600"
+                >
+                  Browse Verified Properties
+                </Link>
+                <Link
+                  href="/requests"
+                  className="rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10"
+                >
+                  Request Verification
                 </Link>
               </div>
-              <SpotlightCarousel items={spotlights} />
             </section>
+          ) : (
+            // Trending Opportunities - Only show if we have data
+            spotlights.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white">Trending Opportunities</h2>
+                  <Link href="/properties" className="text-sm text-emerald-400 hover:text-emerald-300">
+                    View all →
+                  </Link>
+                </div>
+                <SpotlightCarousel items={spotlights} />
+              </section>
+            )
           )}
         </div>
 
